@@ -80,10 +80,28 @@ async function crearSolicitudCompleta(data) {
  */
 async function obtenerPorEmpresa(id_empresa) {
   const result = await pool.query(
-    `SELECT * FROM solicitudes WHERE id_empresa = $1`,
+    `SELECT 
+      s.*, 
+      c.id AS cliente_id, 
+      c.nombre AS cliente_nombre
+     FROM solicitudes s
+     JOIN clientes c ON s.id_cliente = c.id
+     WHERE s.id_empresa = $1
+     ORDER BY s.fecha_solicitud DESC
+     LIMIT 5`,
     [id_empresa]
   );
-  return result.rows;
+  return result.rows.map(row => ({
+    id: row.id,
+    direccion: row.direccion,
+    tamano: row.tamano,
+    estado: row.estado,
+    fecha_solicitud: row.fecha_solicitud,
+    cliente: {
+      id: row.cliente_id,
+      nombre: row.cliente_nombre
+    }
+  }));
 }
 
 /**
