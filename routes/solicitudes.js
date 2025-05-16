@@ -8,6 +8,8 @@ const upload = require('../middleware/multer');
  * Ruta POST para crear una nueva solicitud.
  */
 router.post('/', SolicitudController.crearSolicitud);
+router.get('/recientes/:id_empresa', SolicitudController.solicitudesRecientes);
+
 router.post(
     '/completa',
     upload.any(),//acepta multiples campos y archivos

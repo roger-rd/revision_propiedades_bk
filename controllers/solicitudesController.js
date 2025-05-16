@@ -1,5 +1,15 @@
 const SolicitudModel = require('../models/solicitudesModel');
 
+
+async function solicitudesRecientes(req, res) {
+  try {
+    const data = await SolicitudModel.obtenerUltimasSolicitudesConCliente(req.params.id_empresa);
+    res.json({ data });
+  } catch (error) {
+    console.error('Error al ver solicitudes:', error.message);
+    res.status(500).json({ error: 'Error al ver solicitud' });
+  }
+}
 /**
  * Controlador para registrar una nueva solicitud.
  */
@@ -145,6 +155,7 @@ async function obtenerSolicitudCompleta(req, res) {
   
 module.exports = {
   crearSolicitud,
+  solicitudesRecientes,
   crearSolicitudCompleta,
   listarPorEmpresa,
   agregarEspacios,

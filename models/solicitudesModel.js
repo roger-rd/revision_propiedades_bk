@@ -80,6 +80,14 @@ async function crearSolicitudCompleta(data) {
  */
 async function obtenerPorEmpresa(id_empresa) {
   const result = await pool.query(
+    `SELECT * FROM solicitudes WHERE id_empresa = $1`,
+    [id_empresa]
+  );
+  return result.rows;
+}
+
+async function obtenerUltimasSolicitudesConCliente(id_empresa) {
+  const result = await pool.query(
     `SELECT 
       s.*, 
       c.id AS cliente_id, 
@@ -91,6 +99,7 @@ async function obtenerPorEmpresa(id_empresa) {
      LIMIT 5`,
     [id_empresa]
   );
+
   return result.rows.map(row => ({
     id: row.id,
     direccion: row.direccion,
@@ -251,5 +260,6 @@ module.exports = {
   obtenerSolicitudCompleta,
   agregarEspaciosASolicitud,
   eliminarSolicitud,
-  actualizarSolicitud
+  actualizarSolicitud,
+  obtenerUltimasSolicitudesConCliente
 };
