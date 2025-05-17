@@ -31,10 +31,16 @@ async function eliminarEspacio(id) {
     )`, [id]);
 
   // 2. Eliminar observaciones del espacio
-  await pool.query(`DELETE FROM observaciones WHERE id_espacio = $1`, [id]);
+  await pool.query(`
+    DELETE FROM observaciones 
+    WHERE id_espacio = $1
+    `, [id]);
 
   // 3. Eliminar el espacio
-  const result = await pool.query(`DELETE FROM espacios WHERE id = $1 RETURNING *`, [id]);
+  const result = await pool.query(`
+    DELETE FROM espacios 
+    WHERE id = $1 RETURNING *
+    `, [id]);
 
   return result.rows[0];
 }

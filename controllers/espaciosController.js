@@ -27,17 +27,15 @@ async function editarEspacio(req, res) {
 }
 
 async function eliminarEspacio(req, res) {
-  const { id } = req.params;
-
   try {
-    const eliminado = await EspacioModel.eliminarEspacio(id);
+    const eliminado = await EspacioModel.eliminarEspacio(req.params.id);
     if (!eliminado) {
-      return res.status(404).json({ error: "Espacio no encontrado" });
+      return res.status(404).json({ error: 'Espacio no encontrado' });
     }
-    res.json({ message: "Espacio eliminado correctamente" });
+    res.json({ message: 'Espacio eliminado', data: eliminado });
   } catch (error) {
-    console.error("Error al eliminar espacio:", error.message);
-    res.status(500).json({ error: "Error al eliminar espacio" });
+    console.error('Error al eliminar espacio:', error.message);
+    res.status(500).json({ error: 'Error al eliminar espacio' });
   }
 }
 
