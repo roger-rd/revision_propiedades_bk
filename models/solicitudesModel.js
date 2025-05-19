@@ -116,63 +116,7 @@ async function obtenerUltimasSolicitudesConCliente(id_empresa) {
 /**
  * Devuelve una solicitud completa con cliente, espacios, observaciones y fotos.
  */
-async function obtenerSolicitudCompleta(id) {
-  // Obtener solicitud y cliente
-  const solicitudQuery = `
-    SELECT s.*, c.id AS cliente_id, c.nombre AS cliente_nombre, c.rut, c.correo, c.telefono, c.direccion AS cliente_direccion
-    FROM solicitudes s
-    JOIN clientes c ON s.id_cliente = c.id
-    WHERE s.id = $1
-  `;
-  const solicitudResult = await pool.query(solicitudQuery, [id]);
 
-  if (solicitudResult.rows.length === 0) return null;
-  const solicitud = solicitudResult.rows[0];
-
-  // Obtener espacios
-  const espaciosResult = await pool.query(
-    'SELECT * FROM espacios WHERE id_solicitud = $1',
-    [id]
-  );
-
-  const espacios = await Promise.all(espaciosResult.rows.map(async (espacio) => {
-    const obsResult = await pool.query(
-      'SELECT * FROM observaciones WHERE id_espacio = $1',
-      [espacio.id]
-    );
-
-    const observaciones = await Promise.all(obsResult.rows.map(async (obs) => {
-      const fotosResult = await pool.query(
-        'SELECT url_foto FROM fotos_observacion WHERE id_observacion = $1',
-        [obs.id]
-      );
-      return { ...obs, fotos: fotosResult.rows };
-    }));
-
-    return { ...espacio, observaciones };
-  }));
-
-  return {
-    id: solicitud.id,
-    direccion: solicitud.direccion,
-    tamano: solicitud.tamano,
-    estado: solicitud.estado,
-    fecha_solicitud: solicitud.fecha_solicitud,
-    inmobiliaria: solicitud.inmobiliaria,
-    tipo_propiedad: solicitud.tipo_propiedad,
-    tipo_inspeccion: solicitud.tipo_inspeccion,
-    id_empresa: solicitud.id_empresa,
-    cliente: {
-      id: solicitud.cliente_id,
-      nombre: solicitud.cliente_nombre,
-      rut: solicitud.rut,
-      correo: solicitud.correo,
-      telefono: solicitud.telefono,
-      direccion: solicitud.cliente_direccion
-    },
-    espacios
-  };
-}
 
 async function agregarEspaciosASolicitud(id_solicitud, espacios, archivos = {}) {
   for (let i = 0; i < espacios.length; i++) {
@@ -251,7 +195,63 @@ async function eliminarSolicitud(id) {
   return result.rows[0];
 }
 
+async function obtenerSolicitudCompleta(id) {
+  // Obtener solicitud y cliente
+  const solicitudQuery = `
+    SELECT s.*, c.id AS cliente_id, c.nombre AS cliente_nombre, c.rut, c.correo, c.telefono, c.direccion AS cliente_direccion
+    FROM solicitudes s
+    JOIN clientes c ON s.id_cliente = c.id
+    WHERE s.id = $1
+  `;
+  const solicitudResult = await pool.query(solicitudQuery, [id]);
 
+  if (solicitudResult.rows.length === 0) return null;
+  const solicitud = solicitudResult.rows[0];
+
+  // Obtener espacios
+  const espaciosResult = await pool.query(
+    'SELECT * FROM espacios WHERE id_solicitud = $1',
+    [id]
+  );
+
+  const espacios = await Promise.all(espaciosResult.rows.map(async (espacio) => {
+    const obsResult = await pool.query(
+      'SELECT * FROM observaciones WHERE id_espacio = $1',
+      [espacio.id]
+    );
+
+    const observaciones = await Promise.all(obsResult.rows.map(async (obs) => {
+      const fotosResult = await pool.query(
+        'SELECT url_foto FROM fotos_observacion WHERE id_observacion = $1',
+        [obs.id]
+      );
+      return { ...obs, fotos: fotosResult.rows };
+    }));
+
+    return { ...espacio, observaciones };
+  }));
+
+  return {
+    id: solicitud.id,
+    direccion: solicitud.direccion,
+    tamano: solicitud.tamano,
+    estado: solicitud.estado,
+    fecha_solicitud: solicitud.fecha_solicitud,
+    inmobiliaria: solicitud.inmobiliaria,
+    tipo_propiedad: solicitud.tipo_propiedad,
+    tipo_inspeccion: solicitud.tipo_inspeccion,
+    id_empresa: solicitud.id_empresa,
+    cliente: {
+      id: solicitud.cliente_id,
+      nombre: solicitud.cliente_nombre,
+      rut: solicitud.rut,
+      correo: solicitud.correo,
+      telefono: solicitud.telefono,
+      direccion: solicitud.cliente_direccion
+    },
+    espacios
+  };
+}
 
 module.exports = {
   crearSolicitud,

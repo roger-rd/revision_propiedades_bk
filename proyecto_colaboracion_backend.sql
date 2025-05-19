@@ -5,7 +5,7 @@ CREATE TABLE observaciones (
     creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-
+SELECT * FROM fotos_observacion;
 SELECT * FROM clientes;
 SELECT * FROM espacios;
 SELECT * FROM solicitudes;
@@ -14,6 +14,8 @@ SELECT * FROM usuarios;
 SELECT * FROM observaciones;
 
 SELECT * FROM observaciones WHERE id = 65;
+ALTER TABLE fotos_observacion RENAME COLUMN public_id TO id_public;
+
 
 SELECT column_name, data_type, is_nullable
 FROM information_schema.columns

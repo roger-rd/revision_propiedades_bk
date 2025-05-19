@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const SolicitudController = require('../controllers/solicitudesController');
-const upload = require('../middleware/multer');
+const upload = require('../middlewares/uploadMiddleware');
 
 /**
  * Ruta POST para crear una nueva solicitud.
