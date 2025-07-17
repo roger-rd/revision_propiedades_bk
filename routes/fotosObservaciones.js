@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const fotoController = require('../controllers/fotosController');
 const upload = require('../middlewares/uploadMiddleware');
+// const verificarToken = require('../middlewares/authMiddleware');
+
 
 
 

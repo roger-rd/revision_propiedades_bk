@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const SolicitudController = require('../controllers/solicitudesController');
 const upload = require('../middlewares/uploadMiddleware');
+// const = require('../middlewares/authMiddleware');
 
 /**
  * Ruta POST para crear una nueva solicitud.
@@ -25,7 +26,7 @@ router.get('/empresa/:id_empresa', SolicitudController.listarPorEmpresa);
  */
 router.get('/:id/completa', SolicitudController.obtenerSolicitudCompleta);
 
-router.post("/:id/espacios", upload.any(), SolicitudController.agregarEspacios)
+router.post("/:id/espacios", upload.any(),  SolicitudController.agregarEspacios)
 
 router.put('/:id', SolicitudController.actualizarSolicitud)
 router.delete('/:id', SolicitudController.eliminarSolicitud)

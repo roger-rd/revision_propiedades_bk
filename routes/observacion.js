@@ -3,6 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const ObservacionController = require('../controllers/observacionesController');
+// const = require('../middlewares/authMiddleware');
 
 /**
  * Crear observación.
