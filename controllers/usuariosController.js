@@ -1,4 +1,5 @@
 const UsuarioModel = require('../models/usuariosModel');
+const jwt = require('jsonwebtoken')
 
 /**
  * Controlador de login: valida correo y password, y devuelve datos de usuario + empresa.
@@ -13,7 +14,18 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Usuario o password inválidos' });
     }
 
+    const token = jwt.sign(
+      {
+        id: usuario.id,
+        rol:usuario.rol,
+        id_empresa: usuario.id_empresa
+      },
+      process.env.JWT_SECRET,
+      {expiresIn:'8h'} // se puede ajustar el tiempo
+    )
+
     res.json({
+      token,
       usuario: {
         id: usuario.id,
         nombre: usuario.nombre,

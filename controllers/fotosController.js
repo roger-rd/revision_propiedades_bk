@@ -37,7 +37,7 @@ async function eliminarFotoObservacion(req, res) {
 async function subirFotoDesdeArchivo(req, res) {
   try {
     const { id_observacion } = req.body;
-    const id_empresa = req.body.id_empresa;
+    const id_empresa = req.usuario?.id_empresa;
 
     if (!req.file) {
       return res.status(400).json({ error: 'No se recibió ninguna imagen' });
