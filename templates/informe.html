@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% comment %} <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
@@ -156,5 +156,154 @@
   <div class="footer">
     © 2025  Inspecciones · Informe generado automáticamente
   </div>
+</body>
+</html> {% endcomment %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Informe de Inspección</title>
+  <style>
+    page {
+      margin-top: 5px;
+      margin-bottom: 15px;
+      margin-left: 25px;
+      margin-right: 25px;
+    }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 40px;
+      font-size: 14px;
+      color: #333;
+      background-color: #fff;
+    }
+    h1, h2, h3 {
+      text-align: center;
+      color: #2c7a7b;
+    }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 0;
+    }
+    h2 {
+      font-size: 20px;
+      margin-top: 40px;
+      border-bottom: 1px solid #a0d5d7;
+      padding-bottom: 5px;
+    }
+    h3 {
+      font-size: 18px;
+      margin-top: 30px;
+      color: #225566;
+    }
+    .seccion {
+      margin-top: 30px;
+    }
+    .datos-generales {
+      border: 1px solid #cce6e8;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: #f0fafa;
+    }
+    .datos-generales p {
+      margin: 6px 0;
+      line-height: 1.5;
+    }
+    .tabla-inspeccion {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      margin-top: 20px;
+      font-size: 13px;
+    }
+    .tabla-inspeccion th,
+    .tabla-inspeccion td {
+      border: 1px solid #b2d8da;
+      padding: 10px;
+      text-align: left;
+    }
+    .tabla-inspeccion th {
+      background-color: #daf3f5;
+      color: #225566;
+    }
+    .tabla-inspeccion td {
+      background-color: #fff;
+    }
+    .foto {
+      width: 90px;
+      border-radius: 4px;
+    }
+    .logo {
+      width: 140px;
+      margin-bottom: 10px;
+    }
+    .portada {
+      text-align: center;
+      margin-top: 60px;
+    }
+    ul {
+      margin-left: 20px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 40px;
+      font-size: 12px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="portada">
+    <img src="{{logo}}" class="logo" />
+    <h2 style="color: {{color_primario}};">{{nombre_empresa}}</h2>
+    <h1>INSPECCIÓN CHEQUEO</h1>
+    <p><strong>Cliente:</strong> {{cliente}}</p>
+    <p><strong>Dirección de inspección:</strong> {{direccion}}</p>
+    <p><strong>Fecha:</strong> {{fecha}}</p>
+    <p><strong>Contacto:</strong> +56 9 4209 7181 · contacto@inspecciones.cl</p>
+    <p><strong>Web:</strong> www.inspecciones.cl</p>
+  </div>
+
+  <div class="seccion datos-generales">
+    <p><strong>Correo:</strong> {{correo}}</p>
+    <p><strong>RUT:</strong> {{rut}}</p>
+    <p><strong>Teléfono:</strong> {{telefono}}</p>
+    <p><strong>Inmobiliaria:</strong> {{inmobiliaria}}</p>
+    <p><strong>Tipo de propiedad:</strong> {{tipo_propiedad}}</p>
+    <p><strong>Tipo de inspección:</strong> {{tipo_inspeccion}}</p>
+    <p><strong>Metros cuadrados:</strong> {{tamano}}</p>
+    <p><strong>Estado solicitud:</strong> {{estado}}</p>
+  </div>
+
+  <div class="seccion">
+    <h2>Alcances de la Inspección</h2>
+    <p>La inspección se realiza de acuerdo a los estándares del Manual de Tolerancia para Edificaciones de la CDT. Se basa en una revisión visual para identificar defectos en distintas áreas.</p>
+  </div>
+
+  <div class="seccion">
+    <h2>Recintos de la Propiedad</h2>
+    <ul>
+      {{lista_espacios}}
+    </ul>
+  </div>
+
+  <div class="seccion">
+    <h2>Revisión Técnica Detallada</h2>
+    {{tabla_observaciones}}
+  </div>
+
+  <div class="seccion">
+    <h2>Conclusiones</h2>
+    <p>Se recomienda realizar las reparaciones antes de la entrega de la propiedad. El propietario puede exigir la reparación total conforme al manual de tolerancia de construcción.</p>
+  </div>
+
+  <div class="footer">
+    © 2025  Inspecciones · Informe generado automáticamente
+  </div>
+
+  <script>
+    // Reemplazo de texto undefined por "-" al renderizar el HTML como string antes del PDF
+    document.body.innerHTML = document.body.innerHTML.replace(/undefined/g, "-");
+  </script>
 </body>
 </html>

@@ -93,4 +93,5 @@ VALUES ('marianrtd','19458-3','mariant@test.test','4567822','las brisas 123',1);
  ALTER TABLE clientes
  ADD COLUMN latitud DECIMAL(10,7),
  ADD COLUMN longitud DECIMAL(10,7)
- 
+
+SELECT * FROM solicitudes WHERE ID = 13;

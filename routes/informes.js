@@ -72,7 +72,7 @@ router.get('/:id/generar', async (req, res) => {
             <td>${index + 1}</td>
             <td>${obs.estado || '-'}</td>
             <td>${obs.elemento || '-'}</td>
-            <td>${obs.texto}</td>
+            <td>${obs.descripcion}</td>
             <td>${obs.fotos[0] ? `<img class="foto" src="${obs.fotos[0].url_foto}" />` : ''}</td>
             <td>${obs.fotos[1] ? `<img class="foto" src="${obs.fotos[1].url_foto}" />` : ''}</td>
           </tr>
