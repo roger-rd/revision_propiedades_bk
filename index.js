@@ -1,4 +1,4 @@
-const dotenv = require('dotenv');
+require('dotenv').config(); // esto carga las variables de entorno
 const express = require('express');
 const cors = require('cors');
 const pool = require('./config/bd_revision_casa.js');
@@ -48,6 +48,12 @@ app.use('/api/empresas', empresasRoutes);
 
 const agendaRoutes = require('./routes/agenda');
 app.use('/api/agenda', agendaRoutes);
+
+const autocompleteRoutes = require('./routes/autocomplete');
+app.use('/api/autocomplete', autocompleteRoutes);
+
+const placeDetailsRoute = require('./routes/placeDetails');
+app.use('/api/place-details', placeDetailsRoute);
 
 app.use('/uploads', express.static('uploads'));
 
