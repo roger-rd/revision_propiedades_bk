@@ -72,7 +72,7 @@ router.get('/:id/generar', async (req, res) => {
             <td>${index + 1}</td>
             <td>${obs.estado || '-'}</td>
             <td>${obs.elemento || '-'}</td>
-            <td>${obs.descripcion}</td>
+            <td>${obs.descripcion || '-'}</td>
             <td>${obs.fotos[0] ? `<img class="foto" src="${obs.fotos[0].url_foto}" />` : ''}</td>
             <td>${obs.fotos[1] ? `<img class="foto" src="${obs.fotos[1].url_foto}" />` : ''}</td>
           </tr>
@@ -89,10 +89,14 @@ router.get('/:id/generar', async (req, res) => {
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    const pdfPath = path.join(__dirname, `../public/informes/informe_${idSolicitud}.pdf`);
-    if (!fs.existsSync(path.dirname(pdfPath))) {
-      fs.mkdirSync(path.dirname(pdfPath), { recursive: true });
-    }
+
+    const nombreCliente = solicitud.cliente.nombre
+      .toLowerCase()
+      .replace(/[^a-z0-9]/gi, '_') // reemplaza espacios y símbolos por _
+      .substring(0, 50); // evita nombres larguísimos
+
+    const pdfPath = path.join(__dirname, `../public/informes/informe_${nombreCliente}.pdf`);
+
 
     await page.pdf({
       path: pdfPath,
@@ -100,7 +104,8 @@ router.get('/:id/generar', async (req, res) => {
     });
     await browser.close();
 
-    res.download(pdfPath);
+    // res.download(pdfPath);
+    res.download(pdfPath, `informe_${nombreCliente}.pdf`);
   } catch (error) {
     console.error('Error al generar el PDF:', error.message);
     res.status(500).json({ error: 'Error generando el PDF' });
