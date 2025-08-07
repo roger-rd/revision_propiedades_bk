@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Informe de Inspección</title>
+  <style>
+    @page {
+      margin: 60px 40px;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 14px;
+      color: #333;
+      background-color: #fff;
+      position: relative;
+    }
+
+    header {
+      position: fixed;
+      top: -40px;
+      left: 0;
+      right: 0;
+      height: 40px;
+      text-align: center;
+      font-size: 12px;
+      color: #888;
+      border-bottom: 1px solid #ccc;
+      line-height: 1.5;
+    }
+
+    footer {
+      position: fixed;
+      bottom: -30px;
+      left: 0;
+      right: 0;
+      height: 30px;
+      font-size: 11px;
+      text-align: center;
+      color: #999;
+      border-top: 1px solid #ddd;
+    }
+
+    h1, h2, h3 {
+      text-align: center;
+      color: {{color_primario}};
+    }
+
+    h1 {
+      font-size: 32px;
+      margin-bottom: 10px;
+      text-transform: uppercase;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-top: 40px;
+      border-bottom: 2px solid {{color_segundario}};
+      padding-bottom: 6px;
+    }
+
+    h3 {
+      font-size: 18px;
+      margin-top: 30px;
+      background-color: #f0fafa;
+      padding: 10px;
+      border-left: 4px solid {{color_primario}};
+    }
+
+    .seccion {
+      margin-top: 30px;
+    }
+
+    .datos-generales {
+      border: 1px solid #cce6e8;
+      border-radius: 8px;
+      padding: 20px;
+      background-color: #f8fcfc;
+    }
+
+    .datos-generales p {
+      margin: 6px 0;
+      line-height: 1.5;
+    }
+
+    .tabla-inspeccion {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 13px;
+      box-shadow: 0 0 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .tabla-inspeccion th,
+    .tabla-inspeccion td {
+      border: 1px solid #b2d8da;
+      padding: 10px;
+      text-align: left;
+    }
+
+    .tabla-inspeccion th {
+      background-color: {{color_segundario}};
+      color: #fff;
+    }
+
+    .tabla-inspeccion td {
+      background-color: #fff;
+    }
+
+    .foto {
+      width: 100px;
+      border-radius: 4px;
+      object-fit: cover;
+      border: 1px solid #ccc;
+    }
+
+    .logo {
+      width: 150px;
+      margin-bottom: 15px;
+    }
+
+    .portada {
+      text-align: center;
+      padding: 40px;
+      border: 2px dashed {{color_primario}};
+      border-radius: 10px;
+    }
+
+    ul {
+      margin-left: 20px;
+    }
+
+    .firma {
+      margin-top: 60px;
+      text-align: left;
+      font-size: 13px;
+    }
+
+    .firma p {
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    {{nombre_empresa}} — Informe de Inspección — Fecha: {{fecha}}
+  </header>
+
+  <footer>
+    © 2025 Inspecciones · contacto@inspecciones.cl · +56 9 4209 7181
+  </footer>
+
+  <div class="portada">
+    <img src="{{logo}}" class="logo" />
+    <h2 style="color: {{color_primario}};">{{nombre_empresa}}</h2>
+    <h1>Inspección Chequeo</h1>
+    <p><strong>Cliente:</strong> {{cliente}}</p>
+    <p><strong>Dirección de inspección:</strong> {{direccion}}</p>
+    <p><strong>Fecha:</strong> {{fecha}}</p>
+    <p><strong>Contacto:</strong> +56 9 4209 7181 · contacto@inspecciones.cl</p>
+    <p><strong>Web:</strong> www.inspecciones.cl</p>
+  </div>
+
+  <div class="seccion datos-generales">
+    <p><strong>Correo:</strong> {{correo}}</p>
+    <p><strong>RUT:</strong> {{rut}}</p>
+    <p><strong>Teléfono:</strong> {{telefono}}</p>
+    <p><strong>Inmobiliaria:</strong> {{inmobiliaria}}</p>
+    <p><strong>Tipo de propiedad:</strong> {{tipo_propiedad}}</p>
+    <p><strong>Tipo de inspección:</strong> {{tipo_inspeccion}}</p>
+    <p><strong>Metros cuadrados:</strong> {{tamano}}</p>
+    <p><strong>Estado solicitud:</strong> {{estado}}</p>
+  </div>
+
+  <div class="seccion">
+    <h2>1. Alcances de la Inspección</h2>
+    <p>La inspección se realiza de acuerdo a los estándares del Manual de Tolerancia para Edificaciones de la CDT. Se basa en una revisión visual para identificar defectos en distintas áreas.</p>
+  </div>
+
+  <div class="seccion">
+    <h2>2. Recintos de la Propiedad</h2>
+    <ul>
+      {{lista_espacios}}
+    </ul>
+  </div>
+
+  <div class="seccion">
+    <h2>3. Revisión Técnica Detallada</h2>
+    {{tabla_observaciones}}
+  </div>
+
+  <div class="seccion">
+    <h2>4. Conclusiones</h2>
+    <p>Se recomienda realizar las reparaciones antes de la entrega de la propiedad. El propietario puede exigir la reparación total conforme al manual de tolerancia de construcción.</p>
+  </div>
+
+  <div class="seccion firma">
+    <p><strong>Firma del Inspector:</strong></p>
+    <br><br>
+    <p>______________________________</p>
+    <p>{{nombre_empresa}}</p>
+  </div>
+</body>
+</html>

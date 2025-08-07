@@ -103,9 +103,10 @@ router.get('/:id/generar', async (req, res) => {
       format: 'letter'
     });
     await browser.close();
-
-    // res.download(pdfPath);
-    res.download(pdfPath, `informe_${nombreCliente}.pdf`);
+    
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'inline; filename=informe.pdf');
+    res.sendFile(pdfPath);
   } catch (error) {
     console.error('Error al generar el PDF:', error.message);
     res.status(500).json({ error: 'Error generando el PDF' });

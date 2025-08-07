@@ -78,13 +78,31 @@ async function crearSolicitudCompleta(data) {
 /**
  * Obtiene todas las solicitudes asociadas a una empresa.
  */
-async function obtenerPorEmpresa(id_empresa) {
-  const result = await pool.query(
-    `SELECT * FROM solicitudes WHERE id_empresa = $1`,
-    [id_empresa]
-  );
-  return result.rows;
-}
+// async function obtenerPorEmpresa(id_empresa) {
+//   const result = await pool.query(
+//     `SELECT * FROM solicitudes WHERE id_empresa = $1`,
+//     [id_empresa]
+//   );
+//   return result.rows;
+// }
+  async function obtenerPorEmpresa(id_empresa) {
+    const result = await pool.query(
+      `SELECT s.*, c.nombre AS cliente_nombre, c.rut AS cliente_rut
+      FROM solicitudes s
+      JOIN clientes c ON s.id_cliente = c.id
+      WHERE s.id_empresa = $1
+      ORDER BY s.fecha_solicitud DESC`,
+      [id_empresa]
+    );
+    return result.rows.map(row => ({
+      ...row,
+      cliente: {
+        nombre: row.cliente_nombre,
+        rut: row.cliente_rut
+      }
+    }));
+  }
+
 
 async function obtenerUltimasSolicitudesConCliente(id_empresa) {
   const result = await pool.query(
