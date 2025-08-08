@@ -1,32 +1,54 @@
 // const express = require('express');
 // const axios = require('axios');
+
 // const router = express.Router();
 
+// // Autocomplete (New)
 // router.get('/', async (req, res) => {
-//   const input = req.query.input;
-//   if (!input) return res.status(400).json({ error: 'Falta parámetro input' });
+//   const input = (req.query.input || '').trim();
+//   if (input.length < 3) {
+//     return res.json({ suggestions: [] });
+//   }
 
 //   try {
-//     const response = await axios.post(
+//     const resp = await axios.post(
 //       'https://places.googleapis.com/v1/places:autocomplete',
-//       { input },
+//       {
+//         input,
+//         languageCode: 'es-CL',
+//         // opcional: sesion y sesgo por país/ubicación
+//         // regionCode: 'CL',
+//         // locationBias: { circle: { center: { latitude: -33.45, longitude: -70.66 }, radius: 50000 } }
+//       },
 //       {
 //         headers: {
 //           'Content-Type': 'application/json',
-//           'X-Goog-Api-Key': process.env.GOOGLE_MAPS_KEY,
+//           'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY, // <-- usa SIEMPRE ESTE NOMBRE
+//           'X-Goog-FieldMask':
+//             'suggestions.placePrediction.placeId,' +
+//             'suggestions.placePrediction.structuredFormat.mainText.text,' +
+//             'suggestions.placePrediction.structuredFormat.secondaryText.text',
 //         },
+//         timeout: 10000,
 //       }
 //     );
 
-//     const suggestions = response.data.suggestions.map((s) => ({
-//       placeId: s.placePrediction.placeId,
-//       mainText: s.placePrediction.structuredFormat.mainText.text,
-//       secondaryText: s.placePrediction.structuredFormat.secondaryText.text,
+//     // resp.data.suggestions es el objeto correcto en Places API (New)
+//     // y ya trae placePrediction.* con los campos que pedimos en FieldMask
+//     const suggestions = (resp.data?.suggestions || []).map(s => ({
+//       placePrediction: {
+//         placeId: s.placePrediction.placeId,
+//         structuredFormat: {
+//           mainText: { text: s.placePrediction.structuredFormat?.mainText?.text || '' },
+//           secondaryText: { text: s.placePrediction.structuredFormat?.secondaryText?.text || '' },
+//         },
+//       },
 //     }));
 
-//     res.json(suggestions);
+//     res.json({ suggestions });
 //   } catch (err) {
-//     console.error('Error al consultar Places API:', err.response?.data || err.message);
+//     console.error('Error al consultar Places API (autocomplete):',
+//       err.response?.data || err.message);
 //     res.status(500).json({
 //       error: 'Error consultando Google Places API',
 //       detalle: err.response?.data || err.message,
@@ -36,17 +58,16 @@
 
 // module.exports = router;
 
+// routes/autocomplete.js
 const express = require('express');
 const axios = require('axios');
-
 const router = express.Router();
 
-// Autocomplete (New)
 router.get('/', async (req, res) => {
   const input = (req.query.input || '').trim();
-  if (input.length < 3) {
-    return res.json({ suggestions: [] });
-  }
+  const sessionToken = req.query.sessionToken || undefined;
+
+  if (input.length < 4) return res.json({ suggestions: [] });
 
   try {
     const resp = await axios.post(
@@ -54,14 +75,12 @@ router.get('/', async (req, res) => {
       {
         input,
         languageCode: 'es-CL',
-        // opcional: sesion y sesgo por país/ubicación
-        // regionCode: 'CL',
-        // locationBias: { circle: { center: { latitude: -33.45, longitude: -70.66 }, radius: 50000 } }
+        sessionToken, // <-- esto vincula la sesión de billing
       },
       {
         headers: {
           'Content-Type': 'application/json',
-          'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY, // <-- usa SIEMPRE ESTE NOMBRE
+          'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
           'X-Goog-FieldMask':
             'suggestions.placePrediction.placeId,' +
             'suggestions.placePrediction.structuredFormat.mainText.text,' +
@@ -71,8 +90,6 @@ router.get('/', async (req, res) => {
       }
     );
 
-    // resp.data.suggestions es el objeto correcto en Places API (New)
-    // y ya trae placePrediction.* con los campos que pedimos en FieldMask
     const suggestions = (resp.data?.suggestions || []).map(s => ({
       placePrediction: {
         placeId: s.placePrediction.placeId,
@@ -85,12 +102,8 @@ router.get('/', async (req, res) => {
 
     res.json({ suggestions });
   } catch (err) {
-    console.error('Error al consultar Places API (autocomplete):',
-      err.response?.data || err.message);
-    res.status(500).json({
-      error: 'Error consultando Google Places API',
-      detalle: err.response?.data || err.message,
-    });
+    console.error('Error al consultar Places API (autocomplete):', err.response?.data || err.message);
+    res.status(500).json({ error: 'Error consultando Google Places API', detalle: err.response?.data || err.message });
   }
 });
 
