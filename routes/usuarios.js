@@ -9,5 +9,8 @@ const UsuarioController = require('../controllers/usuariosController.js');
  * Ruta para login de usuario con correo y clave.
  */
 router.post('/login',  UsuarioController.login);
+router.get('/:id', /*auth,*/ UsuarioController.getUsuario);
+router.put('/:id', /*auth,*/ UsuarioController.updateUsuario);
+router.put('/:id/password', /*auth,*/ UsuarioController.updatePassword);
 
 module.exports = router;

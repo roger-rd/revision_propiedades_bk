@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const SolicitudController = require('../controllers/solicitudesController');
 const upload = require('../middlewares/uploadMiddleware');
+//const { uploadObservaciones } = require('../middlewares/uploadMiddleware');
 // const = require('../middlewares/authMiddleware');
 
 /**
@@ -13,7 +14,7 @@ router.get('/recientes/:id_empresa', SolicitudController.solicitudesRecientes);
 
 router.post(
     '/completa',
-    upload.any(),//acepta multiples campos y archivos
+    //uploadObservaciones.any(),//acepta multiples campos y archivos
     SolicitudController.crearSolicitudCompleta);
 
 /**
@@ -26,7 +27,7 @@ router.get('/empresa/:id_empresa', SolicitudController.listarPorEmpresa);
  */
 router.get('/:id/completa', SolicitudController.obtenerSolicitudCompleta);
 
-router.post("/:id/espacios", upload.any(),  SolicitudController.agregarEspacios)
+//router.post("/:id/espacios", uploadObservaciones.any(),  SolicitudController.agregarEspacios)
 
 router.put('/:id', SolicitudController.actualizarSolicitud)
 router.delete('/:id', SolicitudController.eliminarSolicitud)
