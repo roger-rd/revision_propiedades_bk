@@ -29,7 +29,7 @@ async function listar(req, res) {
 
 async function getEmpresa(req, res) {
   try {
-    const empresa = await Empresa.getById(req.params.id);
+    const empresa = await EmpresaModel.getById(req.params.id);
     if (!empresa) return res.status(404).json({ error: 'Empresa no encontrada' });
     res.json(empresa);
   } catch (e) {
@@ -40,14 +40,15 @@ async function getEmpresa(req, res) {
 
 async function updateEmpresa(req, res) {
   try {
-    const { nombre, direccion, color_primario, color_segundario } = req.body;
-    const empresa = await Empresa.updateBasic(req.params.id, { nombre, direccion, color_primario, color_segundario });
+    const { nombre, color_primario, color_segundario } = req.body;
+    const empresa = await EmpresaModel.updateBasic(req.params.id, { nombre, color_primario, color_segundario });
     res.json(empresa);
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: 'Error al actualizar empresa' });
+    console.error('Error actualizando empresa:', e);
+    res.status(500).json({ error: 'Error actualizando empresa' });
   }
 }
+
 
 async function updateLogo(req, res) {
   try {
@@ -55,7 +56,7 @@ async function updateLogo(req, res) {
 
     // ⚠️ Con CloudinaryStorage, el archivo YA está subido. La URL viene en req.file.path
     const logoUrl = req.file.path; // secure_url
-    const empresa = await Empresa.updateLogo(req.params.id, logoUrl);
+    const empresa = await EmpresaModel.updateLogo(req.params.id, logoUrl);
 
     res.json(empresa);
   } catch (e) {

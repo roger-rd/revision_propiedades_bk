@@ -97,3 +97,6 @@ VALUES ('marianrtd','19458-3','mariant@test.test','4567822','las brisas 123',1);
 SELECT * FROM solicitudes WHERE ID = 13;
 
 select * from observaciones
+SELECT id, correo, password FROM usuarios LIMIT 5;
+
+ALTER TABLE usuarios ADD COLUMN actualizado_en TIMESTAMP;

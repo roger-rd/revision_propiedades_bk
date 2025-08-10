@@ -21,16 +21,22 @@ async function obtenerEmpresas() {
 }
 
 async function getById(id) {
-  const { rows } = await pool.query('SELECT * FROM empresas WHERE id = $1', [id]);
+  const { rows } = await pool.query(
+    `SELECT id, nombre, logo_url, color_primario, color_segundario
+     FROM empresas
+     WHERE id = $1`,
+    [id]
+  );
   return rows[0] || null;
 }
 
-async function updateBasic(id, { nombre, direccion, color_primario, color_segundario }) {
+async function updateBasic(id, { nombre, color_primario, color_segundario }) {
   const { rows } = await pool.query(
     `UPDATE empresas
-     SET nombre = $1, direccion = $2, color_primario = $3, color_segundario = $4
-     WHERE id = $5 RETURNING *`,
-    [nombre, direccion, color_primario, color_segundario, id]
+     SET nombre = $1, color_primario = $2, color_segundario = $3
+     WHERE id = $4
+     RETURNING id, nombre, logo_url, color_primario, color_segundario`,
+    [nombre, color_primario, color_segundario, id]
   );
   return rows[0];
 }

@@ -7,6 +7,35 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.get('/health/db', async (req, res, next) => {
+  try {
+    const r = await pool.query('SELECT 1 as ok');
+    res.json({ db: 'ok', result: r.rows[0] });
+  } catch (e) {
+    next(e);
+  }
+});
+
+app.get('/health/schema', async (req, res, next) => {
+  try {
+    const empresas = await pool.query(`
+      SELECT column_name, data_type
+      FROM information_schema.columns
+      WHERE table_name = 'empresas'
+      ORDER BY ordinal_position
+    `);
+    const usuarios = await pool.query(`
+      SELECT column_name, data_type
+      FROM information_schema.columns
+      WHERE table_name = 'usuarios'
+      ORDER BY ordinal_position
+    `);
+    res.json({ empresas: empresas.rows, usuarios: usuarios.rows });
+  } catch (e) {
+    next(e);
+  }
+});
+
 app.get('/', (req, res) => {
   res.send('Servidor funcionando 🧡');
 });
@@ -57,6 +86,10 @@ app.use('/api/place-details', placeDetailsRoute);
 
 app.use('/uploads', express.static('uploads'));
 
+app.use((err, req, res, next) => {
+  console.error('ERROR middleware:', err);           // <-- muestra stack completo en consola
+  res.status(500).json({ error: err.message });      // <-- te devuelve el detalle real
+});
 
 app.listen(3001, () => {
     console.log('Servidor corriendo en http://localhost:3001');
