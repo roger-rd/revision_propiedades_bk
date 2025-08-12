@@ -88,7 +88,7 @@ VALUES ('marianrtd','19458-3','mariant@test.test','4567822','las brisas 123',1);
 		creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 	);
 
- select * from agenda;
+ select * from usuarios;
  
  ALTER TABLE clientes
  ADD COLUMN latitud DECIMAL(10,7),
@@ -96,7 +96,20 @@ VALUES ('marianrtd','19458-3','mariant@test.test','4567822','las brisas 123',1);
 
 SELECT * FROM solicitudes WHERE ID = 13;
 
-select * from observaciones
+select * from empresas
 SELECT id, correo, password FROM usuarios LIMIT 5;
 
 ALTER TABLE usuarios ADD COLUMN actualizado_en TIMESTAMP;
+
+-- Empresa (¿existe id=1?)
+SELECT id, nombre, logo_url, color_primario, color_segundario
+FROM empresas
+WHERE id = 1;
+
+-- Usuario + empresa (¿rompe el JOIN o solo no hay usuario?)
+SELECT 
+  u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.actualizado_en,
+  e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
+FROM usuarios u
+JOIN empresas e ON u.id_empresa = e.id
+WHERE u.id = 1;

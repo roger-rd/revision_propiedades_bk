@@ -1,23 +1,3 @@
-// const multer = require('multer');
-// const { CloudinaryStorage } = require('multer-storage-cloudinary');
-// const { cloudinary } = require('../config/cloudinary');
-
-// const storage = new CloudinaryStorage({
-//   cloudinary,
-//   params: async (req) => {
-//     const id_empresa = req.params.id_empresa || "sin_empresa";  // viene desde token/session (ajusta si es necesario)
-//     const folderName = `revision-casa/observaciones/empresa_${id_empresa}`;
-
-//     return {
-//       folder: folderName,
-//       allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
-//     };
-//   },
-// });
-
-// const upload = multer({ storage });
-
-// module.exports = upload;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const { cloudinary } = require('../config/cloudinary');
@@ -56,7 +36,13 @@ const storageLogo = new CloudinaryStorage({
   },
 });
 
-const uploadObservaciones = multer({ storage: storageObservaciones });
-const uploadLogo = multer({ storage: storageLogo });
+const uploadObservaciones = multer({ 
+  storage: storageObservaciones,
+  limits: {fileSize: 5 * 1024 *1024 }, // 5MB
+});
+const uploadLogo = multer({ 
+  storage: storageLogo,
+  limits: {fileSize: 5 * 1024 *1024 }, // 5MB
+});
 
 module.exports = { uploadObservaciones, uploadLogo };

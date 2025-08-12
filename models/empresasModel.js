@@ -3,11 +3,11 @@ const pool = require('../config/bd_revision_casa');
 /**
  * Registra una nueva empresa en la base de datos.
  */
-async function crearEmpresa({ nombre, rut, correo_contacto, telefono, logo_url, color_primario, color_segundario }) {
+async function crearEmpresa({ nombre, logo_url, color_primario, color_segundario }) {
   const result = await pool.query(
-    `INSERT INTO empresas (nombre, rut, correo_contacto, telefono, logo_url, color_primario, color_segundario)
-     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-    [nombre, rut, correo_contacto, telefono, logo_url, color_primario, color_segundario]
+    `INSERT INTO empresas (nombre, logo_url, color_primario, color_segundario)
+     VALUES ($1, $2, $3, $4) RETURNING *`,
+    [nombre, logo_url, color_primario, color_segundario]
   );
   return result.rows[0];
 }
@@ -16,7 +16,7 @@ async function crearEmpresa({ nombre, rut, correo_contacto, telefono, logo_url, 
  * Obtiene todas las empresas activas.
  */
 async function obtenerEmpresas() {
-  const result = await pool.query(`SELECT * FROM empresas WHERE estado = true`);
+  const result = await pool.query(`SELECT * FROM empresas`);
   return result.rows;
 }
 
