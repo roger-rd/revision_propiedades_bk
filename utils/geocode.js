@@ -1,4 +1,3 @@
-// utils/geocode.js
 const axios = require('axios');
 
 async function obtenerCoordenadas(direccion) {

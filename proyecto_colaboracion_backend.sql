@@ -113,3 +113,24 @@ SELECT
 FROM usuarios u
 JOIN empresas e ON u.id_empresa = e.id
 WHERE u.id = 1;
+
+
+-- Evitar citas solapadas por empresa + cliente + fecha + hora
+CREATE UNIQUE INDEX IF NOT EXISTS uq_agenda_empresa_cliente_fecha_hora
+ON agenda (id_empresa, id_cliente, fecha, hora);
+
+-- Tabla para controlar envíos de recordatorios y no duplicarlos
+CREATE TABLE IF NOT EXISTS agenda_recordatorios (
+  id SERIAL PRIMARY KEY,
+  agenda_id INTEGER NOT NULL REFERENCES agenda(id) ON DELETE CASCADE,
+  tipo VARCHAR(32) NOT NULL,              -- 'hoy_8am' | 'previo_1h'
+  enviado_en TIMESTAMP NOT NULL DEFAULT NOW(),
+  UNIQUE (agenda_id, tipo)
+);
+
+-- Índice útil para filtros por fecha
+CREATE INDEX IF NOT EXISTS idx_agenda_fecha ON agenda (fecha);
+
+ALTER TABLE empresas ADD COLUMN correo TEXT;
+
+SELECT * FROM agenda;

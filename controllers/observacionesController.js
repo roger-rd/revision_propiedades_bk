@@ -26,7 +26,6 @@ async function crearObservacion(req, res) {
   }
 }
 
-
 /**
  * Controlador para actualizar el estado de una observación.
  */

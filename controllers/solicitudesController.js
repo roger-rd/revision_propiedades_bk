@@ -1,13 +1,14 @@
-const SolicitudModel = require('../models/solicitudesModel');
-
+const SolicitudModel = require("../models/solicitudesModel");
 
 async function solicitudesRecientes(req, res) {
   try {
-    const data = await SolicitudModel.obtenerUltimasSolicitudesConCliente(req.params.id_empresa);
+    const data = await SolicitudModel.obtenerUltimasSolicitudesConCliente(
+      req.params.id_empresa
+    );
     res.json({ data });
   } catch (error) {
-    console.error('Error al ver solicitudes:', error.message);
-    res.status(500).json({ error: 'Error al ver solicitud' });
+    console.error("Error al ver solicitudes:", error.message);
+    res.status(500).json({ error: "Error al ver solicitud" });
   }
 }
 /**
@@ -18,8 +19,8 @@ async function crearSolicitud(req, res) {
     const nuevaSolicitud = await SolicitudModel.crearSolicitud(req.body);
     res.status(201).json(nuevaSolicitud);
   } catch (error) {
-    console.error('Error al crear solicitud:', error.message);
-    res.status(500).json({ error: 'Error al registrar solicitud' });
+    console.error("Error al crear solicitud:", error.message);
+    res.status(500).json({ error: "Error al registrar solicitud" });
   }
 }
 
@@ -34,14 +35,14 @@ async function crearSolicitudCompleta(req, res) {
       inmobiliaria,
       tipo_propiedad,
       tipo_inspeccion,
-      estado
+      estado,
     } = req.body;
 
     const espacios = JSON.parse(req.body.espacios);
 
     // 🖼️ Creamos un diccionario con las imágenes subidas
     const imagenesMap = {};
-    req.files.forEach(file => {
+    req.files.forEach((file) => {
       imagenesMap[file.fieldname] = `/uploads/${file.filename}`;
     });
 
@@ -67,7 +68,7 @@ async function crearSolicitudCompleta(req, res) {
       tipo_propiedad,
       tipo_inspeccion,
       estado,
-      espacios
+      espacios,
     });
 
     res.status(201).json({ message: "Solicitud creada con éxito", solicitud });
@@ -76,7 +77,6 @@ async function crearSolicitudCompleta(req, res) {
     res.status(500).json({ error: "Error al crear solicitud" });
   }
 }
-
 
 /**
  * Controlador para obtener solicitudes filtradas por empresa.
@@ -88,71 +88,82 @@ async function listarPorEmpresa(req, res) {
     const solicitudes = await SolicitudModel.obtenerPorEmpresa(id_empresa);
 
     if (solicitudes.length === 0) {
-      return res.status(404).json({ error: 'No se encontraron solicitudes para esta empresa' });
+      return res
+        .status(404)
+        .json({ error: "No se encontraron solicitudes para esta empresa" });
     }
 
     res.json(solicitudes);
   } catch (error) {
-    console.error('Error al obtener solicitudes:', error.message);
-    res.status(500).json({ error: 'Error al listar solicitudes' });
+    console.error("Error al obtener solicitudes:", error.message);
+    res.status(500).json({ error: "Error al listar solicitudes" });
   }
 }
 /**
  * Controlador para obtener una solicitud completa por ID.
  */
 async function obtenerSolicitudCompleta(req, res) {
-    try {
-      const solicitud = await SolicitudModel.obtenerSolicitudCompleta(req.params.id);
-      if (!solicitud) {
-        return res.status(404).json({ error: 'Solicitud no encontrada' });
-      }
-  
-      res.json({ solicitud });
-    } catch (error) {
-      console.error('Error al obtener solicitud completa:', error.message);
-      res.status(500).json({ error: 'Error interno del servidor' });
+  try {
+    const solicitud = await SolicitudModel.obtenerSolicitudCompleta(
+      req.params.id
+    );
+    if (!solicitud) {
+      return res.status(404).json({ error: "Solicitud no encontrada" });
     }
-  }
 
-  async function agregarEspacios(req, res) {
-    const id_solicitud = req.params.id;
-  
-    try {
-      const espacios = JSON.parse(req.body.espacios || "[]");
-      const archivos = req.files || {};
-  
-      const resultado = await SolicitudModel.agregarEspaciosASolicitud(id_solicitud, espacios, archivos);
-      res.status(201).json(resultado);
-    } catch (error) {
-      console.error("Error al agregar espacios:", error.message);
-      res.status(500).json({ error: "Error al agregar espacios" });
-    }
+    res.json({ solicitud });
+  } catch (error) {
+    console.error("Error al obtener solicitud completa:", error.message);
+    res.status(500).json({ error: "Error interno del servidor" });
   }
-  async function actualizarSolicitud(req, res) {
-    const { id } = req.params;
-    try {
-      const actualizada = await SolicitudModel.actualizarSolicitud(id, req.body);
-      res.json({ message: 'Solicitud actualizada correctamente', solicitud: actualizada });
-    } catch (error) {
-      console.error('Error al actualizar solicitud:', error.message);
-      res.status(500).json({ error: 'Error al actualizar solicitud' });
-    }
+}
+
+async function agregarEspacios(req, res) {
+  const id_solicitud = req.params.id;
+
+  try {
+    const espacios = JSON.parse(req.body.espacios || "[]");
+    const archivos = req.files || {};
+
+    const resultado = await SolicitudModel.agregarEspaciosASolicitud(
+      id_solicitud,
+      espacios,
+      archivos
+    );
+    res.status(201).json(resultado);
+  } catch (error) {
+    console.error("Error al agregar espacios:", error.message);
+    res.status(500).json({ error: "Error al agregar espacios" });
   }
-  
-  async function eliminarSolicitud(req, res) {
-    const { id } = req.params;
-    try {
-      const eliminada = await SolicitudModel.eliminarSolicitud(id);
-      if (!eliminada) {
-        return res.status(404).json({ error: 'Solicitud no encontrada' });
-      }
-      res.json({ message: 'Solicitud eliminada correctamente' });
-    } catch (error) {
-      console.error('Error al eliminar solicitud:', error.message);
-      res.status(500).json({ error: 'Error al eliminar solicitud' });
-    }
+}
+async function actualizarSolicitud(req, res) {
+  const { id } = req.params;
+  try {
+    const actualizada = await SolicitudModel.actualizarSolicitud(id, req.body);
+    res.json({
+      message: "Solicitud actualizada correctamente",
+      solicitud: actualizada,
+    });
+  } catch (error) {
+    console.error("Error al actualizar solicitud:", error.message);
+    res.status(500).json({ error: "Error al actualizar solicitud" });
   }
-  
+}
+
+async function eliminarSolicitud(req, res) {
+  const { id } = req.params;
+  try {
+    const eliminada = await SolicitudModel.eliminarSolicitud(id);
+    if (!eliminada) {
+      return res.status(404).json({ error: "Solicitud no encontrada" });
+    }
+    res.json({ message: "Solicitud eliminada correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar solicitud:", error.message);
+    res.status(500).json({ error: "Error al eliminar solicitud" });
+  }
+}
+
 module.exports = {
   crearSolicitud,
   solicitudesRecientes,
@@ -161,5 +172,5 @@ module.exports = {
   agregarEspacios,
   obtenerSolicitudCompleta,
   actualizarSolicitud,
-  eliminarSolicitud
+  eliminarSolicitud,
 };
