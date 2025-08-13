@@ -4,8 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.dev.js",
+    "start": "node index.js",
+    "start:jobs": "ENABLE_JOBS=true node index.js",
+    "dev:jobs": "ENABLE_JOBS=true nodemon index.dev.js"
   },
   "keywords": [],
   "author": "",
