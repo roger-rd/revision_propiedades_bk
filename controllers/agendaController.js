@@ -1,181 +1,160 @@
-// const AgendaModel = require('../models/agendaModel');
-// const enviarCorreo = require('../utils/mailer');
+const AgendaModel = require("../models/agendaModel");
+const enviarCorreo = require("../utils/mailer");
 
-// /**
-//  * Crear nueva cita.
-//  */
-
+function htmlConfirmacion({
+  empresa_nombre,
+  cliente_nombre,
+  direccion,
+  fecha,
+  hora,
+}) {
+  return `
+  <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
+    <h2>${empresa_nombre} – Confirmación de Visita</h2>
+    <p>Hola <b>${cliente_nombre}</b>, tu visita fue agendada:</p>
+    <ul>
+      <li><b>Fecha:</b> ${fecha}</li>
+      <li><b>Hora:</b> ${hora}</li>
+      <li><b>Dirección:</b> ${direccion}</li>
+    </ul>
+    <p>Gracias por confiar en nosotros.</p>
+  </div>`;
+}
 
 // async function crear(req, res) {
 //   try {
-//     const nueva = await AgendaModel.crearAgenda(req.body);
+//     const { id_empresa, id_cliente, direccion, fecha, hora, observacion } = req.body;
+//     if (!id_empresa || !id_cliente || !direccion || !fecha || !hora) {
+//       return res.status(400).json({ error: "Faltan campos obligatorios." });
+//     }
 
-//     // ⚠️ Aquí tú podrías consultar los datos del cliente si necesitas el correo
-//     // Por ahora lo vamos a simular con un correo de prueba
+//     // 1) Validación anti-solape
+//     const solapa = await AgendaModel.existeSolape({ id_empresa, id_cliente, fecha, hora });
+//     if (solapa) return res.status(409).json({ error: "Ya existe una cita para este cliente en esa fecha y hora." });
 
-//     // Enviar correo al cliente
-//     await enviarCorreo(
-//       'mariantrojasp@gmail.com', // ← cambia por uno real o dinámico
-//       'Cita Agendada - Revisión de Propiedad',
-//       `
-//       <h2>Hola 👋</h2>
-//       <p>Tu visita ha sido agendada con éxito:</p>
-//       <ul>
-//         <li><strong>Dirección:</strong> ${nueva.direccion}</li>
-//         <li><strong>Fecha:</strong> ${nueva.fecha}</li>
-//         <li><strong>Hora:</strong> ${nueva.hora}</li>
-//       </ul>
-//       <p><em>Te esperamos, equipo ARES.</em></p>
-//       `
-//     );
+//     // 2) Crear
+//     const cita = await AgendaModel.crearAgenda({
+//       id_empresa, id_cliente, direccion, fecha, hora, observacion,
+//     });
 
-//     // Enviar copia al administrador
-//     await enviarCorreo(
-//       'rogerdavid.rd@gmail.com', // ← reemplaza con tu correo personal
-//       '📬 Nueva Cita Agendada en el sistema',
-//       `
-//       <h3>Revisión agendada</h3>
-//       <p>Cliente ID: ${nueva.id_cliente}</p>
-//       <p>Dirección: ${nueva.direccion}</p>
-//       <p>Fecha: ${nueva.fecha} | Hora: ${nueva.hora}</p>
-//       <p><strong>Observación:</strong> ${nueva.observacion || 'Sin nota adicional'}</p>
-//       `
-//     );
+//     // 3) Datos para correo (empresa/cliente)
+//     // Tomamos info básica desde listarPorEmpresa para evitar otra consulta separada
+//     // pero lo correcto sería una query por id. Para mantenerlo simple:
+//     const fechaFmt = fecha; // viene YYYY-MM-DD
+//     const empresa_nombre = process.env.APP_NAME || "RDRP Revisión Casa";
 
-//     res.status(201).json({ message: 'Cita creada y correos enviados', cita: nueva });
+//     // Busca correo de cliente y empresa a partir de una consulta rápida:
+//     // (si ya los tienes en la sesión, puedes pasarlos desde frontend)
+//     // Reutilizamos obtenerPorFecha y filtramos
+//     const delDia = await AgendaModel.obtenerPorFecha(id_empresa, fechaFmt);
+//     const actual = delDia.find((x) => x.id === cita.id) || {};
 
-//   } catch (error) {
-//     console.error('Error al crear agenda:', error.message);
-//     res.status(500).json({ error: 'Error al registrar cita' });
+//     // 4) Enviar correos (cliente + empresa)
+//     const html = htmlConfirmacion({
+//       empresa_nombre,
+//       cliente_nombre: actual.cliente_nombre || "Cliente",
+//       direccion,
+//       fecha: fechaFmt,
+//       hora,
+//     });
+
+//     // Correo a cliente
+//     if (actual.cliente_correo) {
+//       await enviarCorreo(actual.cliente_correo, "Confirmación de visita", html);
+//     }
+//     // Correo a empresa
+//     const correoEmpresa = process.env.EMPRESA_NOTIF || null;
+//     if (correoEmpresa) {
+//        await enviarCorreo(correoEmpresa, "Nueva cita agendada", html);
+//     }
+
+//     res.status(201).json(cita);
+//   } catch (e) {
+//     console.error("Error al crear agenda:", e);
+//     if (String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")) {
+//       return res.status(409).json({ error: "Cita duplicada (solape detectado)." });
+//     }
+//     res.status(500).json({ error: "Error al registrar cita" });
 //   }
 // }
-
-// /**
-//  * Listar citas por empresa.
-//  */
-// async function listar(req, res) {
-//   try {
-//     const { id_empresa } = req.params;
-//     const citas = await AgendaModel.listarPorEmpresa(id_empresa);
-//     res.json(citas);
-//   } catch (error) {
-//     console.error('Error al listar agenda:', error.message);
-//     res.status(500).json({ error: 'Error al consultar agenda' });
-//   }
-// }
-
-// /**
-//  * Eliminar cita por ID.
-//  */
-// async function eliminar(req, res) {
-//   try {
-//     const cita = await AgendaModel.eliminar(req.params.id);
-//     if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
-//     res.json({ message: 'Cita eliminada', cita });
-//   } catch (error) {
-//     console.error('Error al eliminar cita:', error.message);
-//     res.status(500).json({ error: 'Error al eliminar cita' });
-//   }
-// }
-
-// module.exports = {
-//   crear,
-//   listar,
-//   eliminar
-// };
-
-const AgendaModel = require('../models/agendaModel');
-const enviarCorreo = require('../utils/mailer');
-const pool = require('../config/bd_revision_casa'); // 👈 para hacer consultas directas
 
 async function crear(req, res) {
   try {
-    const nueva = await AgendaModel.crearAgenda(req.body);
+    const { id_empresa, id_cliente, direccion, fecha, hora, observacion } =
+      req.body;
+    if (!id_empresa || !id_cliente || !direccion || !fecha || !hora) {
+      return res.status(400).json({ error: "Faltan campos obligatorios." });
+    }
 
-    // 🔍 Obtener datos del cliente desde su ID
-    const clienteResult = await pool.query(
-      `SELECT nombre, correo, latitud, longitud FROM clientes WHERE id = $1`,
-      [nueva.id_cliente]
-    );
+    // anti-solape
+    const solapa = await AgendaModel.existeSolape({
+      id_empresa,
+      id_cliente,
+      fecha,
+      hora,
+    });
+    if (solapa)
+      return res
+        .status(409)
+        .json({
+          error: "Ya existe una cita para este cliente en esa fecha y hora.",
+        });
 
-    const cliente = clienteResult.rows[0];
+    // crear
+    const cita = await AgendaModel.crearAgenda({
+      id_empresa,
+      id_cliente,
+      direccion,
+      fecha,
+      hora,
+      observacion,
+    });
 
-    const mapsLink = `https://www.google.com/maps?q=${cliente.latitud},${cliente.longitud}`;
+    // RESPONDEMOS YA (éxito)
+    res.status(201).json(cita);
 
-    // 💌 HTML elegante con ubicación
-    const mensajeHtmlCliente = `
-      <div style="font-family: Arial, sans-serif; color: #333;">
-        <h2 style="color:#007bff;">Cita Agendada</h2>
-        <p>Hola ${cliente.nombre}, tu visita fue agendada con éxito:</p>
-        <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;">
-          <tr><td><strong>Dirección:</strong></td><td>${nueva.direccion}</td></tr>
-          <tr><td><strong>Fecha:</strong></td><td>${nueva.fecha}</td></tr>
-          <tr><td><strong>Hora:</strong></td><td>${nueva.hora}</td></tr>
-        </table>
-        <p style="margin-top: 20px;">
-          <a href="${mapsLink}" target="_blank" style="padding:10px 20px; background-color:#28a745; color:#fff; text-decoration:none; border-radius:5px;">
-            📍 Ver ubicación en Google Maps
-          </a>
-        </p>
-        <p style="margin-top:30px; font-size:12px; color:#666;">
-          Este correo fue generado automáticamente por el sistema ARES Inspecciones.
-        </p>
-      </div>
-    `;
+    // ==== correos en segundo plano (no afectan la respuesta) ====
+    const empresa_nombre = process.env.APP_NAME || "RDRP Revisión Casa";
+    (async () => {
+      try {
+        const delDia = await AgendaModel.obtenerPorFecha(id_empresa, fecha);
+        const actual = delDia.find((x) => x.id === cita.id) || {};
+        const html = htmlConfirmacion({
+          empresa_nombre,
+          cliente_nombre: actual.cliente_nombre || "Cliente",
+          direccion,
+          fecha,
+          hora,
+        });
 
-    // ✉️ Enviar al cliente
-    await enviarCorreo(
-      cliente.correo,
-      'Cita Agendada - Revisión de Propiedad',
-      mensajeHtmlCliente
-    );
-
-    // ✉️ Enviar al administrador
-    await enviarCorreo(
-      'rogerdavid.rd@gmail.com',
-      '📬 Nueva Cita Agendada en el sistema',
-      `
-      <h3>Revisión agendada</h3>
-      <p>Cliente: ${cliente.nombre}</p>
-      <p>Dirección: ${nueva.direccion}</p>
-      <p>Fecha: ${nueva.fecha} | Hora: ${nueva.hora}</p>
-      <p><strong>Observación:</strong> ${nueva.observacion || 'Sin nota adicional'}</p>
-      <p><a href="${mapsLink}" target="_blank">📍 Ver ubicación</a></p>
-      `
-    );
-
-    res.status(201).json({ message: 'Cita creada y correos enviados', cita: nueva });
-
-  } catch (error) {
-    console.error('Error al crear agenda:', error.message);
-    res.status(500).json({ error: 'Error al registrar cita' });
-  }
-};
-/**
- * Listar citas por empresa.
- */
-async function listar(req, res) {
-  try {
-    const { id_empresa } = req.params;
-    const citas = await AgendaModel.listarPorEmpresa(id_empresa);
-    res.json(citas);
-  } catch (error) {
-    console.error('Error al listar agenda:', error.message);
-    res.status(500).json({ error: 'Error al consultar agenda' });
-  }
-}
-
-/**
- * Eliminar cita por ID.
- */
-async function eliminar(req, res) {
-  try {
-    const cita = await AgendaModel.eliminar(req.params.id);
-    if (!cita) return res.status(404).json({ error: 'Cita no encontrada' });
-    res.json({ message: 'Cita eliminada', cita });
-  } catch (error) {
-    console.error('Error al eliminar cita:', error.message);
-    res.status(500).json({ error: 'Error al eliminar cita' });
+        if (actual.cliente_correo) {
+          await enviarCorreo(
+            actual.cliente_correo,
+            "Confirmación de visita",
+            html
+          );
+        }
+        // usa ENV mientras no tengas empresas.correo
+        const correoEmpresa =
+          process.env.EMPRESA_NOTIF || "ficticio@empresa.com";
+        if (correoEmpresa) {
+          await enviarCorreo(correoEmpresa, "Nueva cita agendada", html);
+        }
+      } catch (e) {
+        console.error("Fallo al enviar correos (no afecta al cliente):", e);
+      }
+    })();
+    // ============================================================
+  } catch (e) {
+    console.error("Error al crear agenda:", e);
+    if (
+      String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")
+    ) {
+      return res
+        .status(409)
+        .json({ error: "Cita duplicada (solape detectado)." });
+    }
+    return res.status(500).json({ error: "Error al registrar cita" });
   }
 }
 
@@ -184,16 +163,21 @@ async function listar(req, res) {
     const { id_empresa } = req.params;
     const citas = await AgendaModel.listarPorEmpresa(id_empresa);
     res.json(citas);
-  } catch (error) {
-    console.error("Error al listar agenda:", error.message);
+  } catch (e) {
+    console.error("Error al listar agenda:", e);
     res.status(500).json({ error: "Error al consultar agenda" });
   }
 }
 
-module.exports = {
-  crear,
-  listar,
-  listar,
-  eliminar
-  
-};
+async function eliminar(req, res) {
+  try {
+    const { id } = req.params;
+    await AgendaModel.eliminar(id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error("Error al eliminar cita:", e);
+    res.status(500).json({ error: "Error al eliminar cita" });
+  }
+}
+
+module.exports = { crear, listar, eliminar };

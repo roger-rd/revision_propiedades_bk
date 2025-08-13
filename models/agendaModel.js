@@ -1,9 +1,5 @@
 const pool = require("../config/bd_revision_casa");
 
-/**
- * Crear una nueva cita en la agenda.
- */
-
 async function crearAgenda({
   id_empresa,
   id_cliente,
@@ -12,68 +8,88 @@ async function crearAgenda({
   hora,
   observacion,
 }) {
-  try {
-    const result = await pool.query(
-      `INSERT INTO agenda (id_empresa, id_cliente, direccion, fecha, hora, observacion)
-            VALUES ($1, $2, $3, $4,$5, $6)
-            RETURNING *`,
-      [id_empresa, id_cliente, direccion, fecha, hora, observacion]
-    );
-    return result.rows[0];
-  } catch (error) {
-    console.error("Error al crear la cita:", error);
-    throw error;
-  }
+  const q = `
+    INSERT INTO agenda (id_empresa, id_cliente, direccion, fecha, hora, observacion)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    RETURNING *`;
+  const vals = [
+    id_empresa,
+    id_cliente,
+    direccion,
+    fecha,
+    hora,
+    observacion ?? null,
+  ];
+  const { rows } = await pool.query(q, vals);
+  return rows[0];
 }
-
-/**
- * Obtener todas las citas por empresa.
- */
 
 async function listarPorEmpresa(id_empresa) {
-  try {
-    const result = await pool.query(
-      `SELECT * FROM agenda WHERE id_empresa = $1 ORDER BY fecha, hora`,
-      [id_empresa]
-    );
-    return result.rows;
-  } catch (error) {
-    console.error("Error al obtener las citas:", error);
-    throw error;
-  }
+  const q = `
+    SELECT a.id, a.id_empresa, a.id_cliente, a.direccion, a.fecha, a.hora, a.observacion,
+           c.nombre  AS cliente_nombre,
+           c.correo  AS cliente_correo,
+           c.telefono AS cliente_telefono
+    FROM agenda a
+    JOIN clientes c ON c.id = a.id_cliente
+    WHERE a.id_empresa = $1
+    ORDER BY a.fecha ASC, a.hora ASC`;
+  const { rows } = await pool.query(q, [id_empresa]);
+  return rows;
 }
-
-/**
- * Eliminar una cita por ID.
- */
 
 async function eliminar(id) {
-  try {
-    const result = await pool.query(
-      `DELETE FROM agenda WHERE id = $1 RETURNING *`[id]
-    );
-    return result.rows[0];
-  } catch (error) {
-    console.error("Error al eliminar la cita:", error);
-    throw error;
-  }
+  await pool.query(`DELETE FROM agenda WHERE id = $1`, [id]);
+  return { ok: true };
 }
 
-async function listarPorEmpresa(id_empresa) {
-  const result = await pool.query(
-    `SELECT a.*, c.nombre AS cliente_nombre
-       FROM agenda a
-       JOIN clientes c ON a.id_cliente = c.id
-       WHERE a.id_empresa = $1
-       ORDER BY a.fecha ASC`,
-    [id_empresa]
+/** Verifica solape exacto (empresa + cliente + fecha + hora) */
+async function existeSolape({ id_empresa, id_cliente, fecha, hora }) {
+  const { rows } = await pool.query(
+    `SELECT 1 FROM agenda WHERE id_empresa=$1 AND id_cliente=$2 AND fecha=$3 AND hora=$4 LIMIT 1`,
+    [id_empresa, id_cliente, fecha, hora]
   );
-  return result.rows;
+  return rows.length > 0;
+}
+
+/** Obtener citas de una fecha (para recordatorios) */
+async function obtenerPorFecha(id_empresa, fecha) {
+  const { rows } = await pool.query(
+    `SELECT a.*, c.nombre AS cliente_nombre, c.correo AS cliente_correo,
+            e.nombre AS empresa_nombre, e.correo AS empresa_correo
+     FROM agenda a
+     JOIN clientes c ON c.id=a.id_cliente
+     JOIN empresas e ON e.id=a.id_empresa
+     WHERE a.id_empresa=$1 AND a.fecha=$2
+     ORDER BY a.hora ASC`,
+    [id_empresa, fecha]
+  );
+  return rows;
+}
+
+/** Registrar envío de recordatorio (para no duplicar) */
+async function registrarRecordatorio(agenda_id, tipo) {
+  await pool.query(
+    `INSERT INTO agenda_recordatorios (agenda_id, tipo) VALUES ($1,$2) ON CONFLICT DO NOTHING`,
+    [agenda_id, tipo]
+  );
+}
+
+/** Verificar si ya se envió un recordatorio */
+async function yaEnviado(agenda_id, tipo) {
+  const { rows } = await pool.query(
+    `SELECT 1 FROM agenda_recordatorios WHERE agenda_id=$1 AND tipo=$2 LIMIT 1`,
+    [agenda_id, tipo]
+  );
+  return rows.length > 0;
 }
 
 module.exports = {
   crearAgenda,
   listarPorEmpresa,
-  listarPorEmpresa,
   eliminar,
+  existeSolape,
+  obtenerPorFecha,
+  registrarRecordatorio,
+  yaEnviado,
 };
