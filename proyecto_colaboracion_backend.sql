@@ -134,3 +134,39 @@ CREATE INDEX IF NOT EXISTS idx_agenda_fecha ON agenda (fecha);
 ALTER TABLE empresas ADD COLUMN correo TEXT;
 
 SELECT * FROM agenda;
+
+-- tokens para reset (un solo uso, expira en 1h)
+CREATE TABLE IF NOT EXISTS password_resets (
+  id SERIAL PRIMARY KEY,
+  id_usuario INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  token VARCHAR(128) NOT NULL UNIQUE,
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_password_resets_usuario ON password_resets(id_usuario);
+CREATE INDEX IF NOT EXISTS ix_password_resets_expires ON password_resets(expires_at);
+
+-- Tabla de uso por llamada (simple)
+CREATE TABLE IF NOT EXISTS google_api_usage (
+  id SERIAL PRIMARY KEY,
+  api_name TEXT NOT NULL,                     -- 'places_autocomplete', 'place_details', 'geocoding', 'maps_js'
+  endpoint TEXT,
+  units INTEGER NOT NULL DEFAULT 1,           -- 1 llamada (o sesiones p/ Maps JS)
+  date_used DATE NOT NULL DEFAULT CURRENT_DATE,
+  meta JSONB,                                 -- opcional (ip, empresa, requestId, etc.)
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS ix_google_api_usage_date_api ON google_api_usage(date_used, api_name);
+
+SELECT * FROM google_api_usage
+INSERT INTO google_api_usage (api_name, endpoint, units, meta)
+VALUES ('maps_js', '/maps/api/js', 1, '{"empresa": "Test"}');
+
+SELECT * FROM google_api_usage ORDER BY id DESC LIMIT 20;
+
+ALTER TABLE usuarios
+ADD COLUMN IF NOT EXISTS reset_token TEXT,
+ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMP;

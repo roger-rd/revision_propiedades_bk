@@ -1,49 +1,59 @@
-const express = require('express');
-const axios = require('axios');
-const router = express.Router();
+// const express = require('express');
+// const axios = require('axios');
+// const router = express.Router();
+// const { logGoogleUsage } = require('../utils/logGoogleUsage');
 
-router.get('/', async (req, res) => {
-  const input = (req.query.input || '').trim();
-  const sessionToken = req.query.sessionToken || undefined;
+// router.get('/', async (req, res) => {
+//   const input = (req.query.input || '').trim();
+//   const sessionToken = req.query.sessionToken || undefined;
 
-  if (input.length < 4) return res.json({ suggestions: [] });
+//   if (input.length < 4) return res.json({ suggestions: [] });
 
-  try {
-    const resp = await axios.post(
-      'https://places.googleapis.com/v1/places:autocomplete',
-      {
-        input,
-        languageCode: 'es-CL',
-        sessionToken, // <-- esto vincula la sesión de billing
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
-          'X-Goog-FieldMask':
-            'suggestions.placePrediction.placeId,' +
-            'suggestions.placePrediction.structuredFormat.mainText.text,' +
-            'suggestions.placePrediction.structuredFormat.secondaryText.text',
-        },
-        timeout: 10000,
-      }
-    );
+//   try {
+//     const resp = await axios.post(
+//       'https://places.googleapis.com/v1/places:autocomplete',
+//       { input, languageCode: 'es-CL', sessionToken },
+//       {
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'X-Goog-Api-Key': process.env.GOOGLE_MAPS_API_KEY,
+//           'X-Goog-FieldMask':
+//             'suggestions.placePrediction.placeId,' +
+//             'suggestions.placePrediction.structuredFormat.mainText.text,' +
+//             'suggestions.placePrediction.structuredFormat.secondaryText.text',
+//         },
+//         timeout: 10000,
+//       }
+//     );
 
-    const suggestions = (resp.data?.suggestions || []).map(s => ({
-      placePrediction: {
-        placeId: s.placePrediction.placeId,
-        structuredFormat: {
-          mainText: { text: s.placePrediction.structuredFormat?.mainText?.text || '' },
-          secondaryText: { text: s.placePrediction.structuredFormat?.secondaryText?.text || '' },
-        },
-      },
-    }));
+//     // ⇨ REGISTRO DE USO
+//     await logGoogleUsage({
+//       api_name: 'places_autocomplete',
+//       endpoint: '/places:autocomplete',
+//       units: 1,
+//       meta: {
+//         sessionToken: sessionToken || null,
+//         ip: req.ip,
+//         // si tienes auth y empresa en req.user, agrégala:
+//         // empresa: req.user?.id_empresa || null,
+//       },
+//     });
 
-    res.json({ suggestions });
-  } catch (err) {
-    console.error('Error al consultar Places API (autocomplete):', err.response?.data || err.message);
-    res.status(500).json({ error: 'Error consultando Google Places API', detalle: err.response?.data || err.message });
-  }
-});
+//     const suggestions = (resp.data?.suggestions || []).map(s => ({
+//       placePrediction: {
+//         placeId: s.placePrediction.placeId,
+//         structuredFormat: {
+//           mainText: { text: s.placePrediction.structuredFormat?.mainText?.text || '' },
+//           secondaryText: { text: s.placePrediction.structuredFormat?.secondaryText?.text || '' },
+//         },
+//       },
+//     }));
 
-module.exports = router;
+//     res.json({ suggestions });
+//   } catch (err) {
+//     console.error('Error al consultar Places API (autocomplete):', err.response?.data || err.message);
+//     res.status(500).json({ error: 'Error consultando Google Places API', detalle: err.response?.data || err.message });
+//   }
+// });
+
+// module.exports = router;

@@ -17,18 +17,6 @@ app.use(
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
-/* Logger dev (simple) */
-// app.use((req, res, next) => {
-//   const t0 = Date.now();
-//   res.on("finish", () => {
-//     const ms = Date.now() - t0;
-//     console.log(
-//       `[${new Date().toISOString()}] ${req.method} ${req.originalUrl} -> ${res.statusCode} (${ms}ms)`
-//     );
-//   });
-//   next();
-// });
-
 /* ============ Healthchecks útiles en dev ============ */
 app.get("/health/db", async (req, res, next) => {
   try {
@@ -84,8 +72,16 @@ app.use("/api/informes", require("./routes/informes"));
 app.use("/api/usuarios", require("./routes/usuarios"));
 app.use("/api/empresas", require("./routes/empresas"));
 app.use("/api/agenda", require("./routes/agenda"));
-app.use("/api/autocomplete", require("./routes/autocomplete"));
-app.use("/api/place-details", require("./routes/placeDetails"));
+// app.use("/api/autocomplete", require("./routes/autocomplete"));
+// app.use("/api/place-details", require("./routes/placeDetails"));
+app.use('/api/auth', require('./routes/auth_reset'));
+
+app.use('/api/autocomplete', require('./routes/googleAutocomplete'));
+app.use('/api/place-details', require('./routes/googlePlaceDetails'));
+app.use('/api/google-billing', require('./routes/googleBilling'));
+
+// app.use('/api/google-usage', require('./routes/googleUsage')); 
+
 
 /* ============ Jobs (opcional también en dev) ============ */
 // Deja off en dev salvo que quieras probar correos
