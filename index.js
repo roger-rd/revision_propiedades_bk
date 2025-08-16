@@ -2,6 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 
+const cron = require('node-cron');
+const { limpiarTokensExpirados } = require('./jobs/limpieza');
+
 const app = express();
 
 /* ============ Configuración base ============ */
@@ -45,6 +48,12 @@ if (String(process.env.ENABLE_JOBS).toLowerCase() === "true") {
   const { initRecordatorios } = require("./jobs/recordatorios");
   initRecordatorios();
 }
+
+
+cron.schedule('0 3 * * *', () => {
+  console.log('⏰ Ejecutando limpieza de tokens...');
+  limpiarTokensExpirados();
+});
 
 /* ============ Errores y arranque ============ */
 app.use((err, req, res, next) => {
