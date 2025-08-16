@@ -72,6 +72,23 @@ async function updateProfile(id, { nombre, correo }) {
   );
   return rows[0] || null;
 }
+/** Actualiza perfil extendido (nombre, correo, telefono, rol, id_empresa) */
+async function updateProfileFull(id, { nombre, correo, telefono, rol, id_empresa }) {
+  const { rows } = await pool.query(
+    `UPDATE usuarios
+     SET nombre = COALESCE($2, nombre),
+         correo = COALESCE($3, correo),
+         telefono = COALESCE($4, telefono),
+         rol = COALESCE($5, rol),
+         id_empresa = COALESCE($6, id_empresa),
+         actualizado_en = NOW()
+     WHERE id = $1
+     RETURNING id, nombre, correo, rol, id_empresa, actualizado_en`,
+    [id, nombre, correo, telefono, rol, id_empresa]
+  );
+  return rows[0] || null;
+}
+
 
 /** Obtiene solo el hash de la contraseña */
 async function getPasswordHash(id) {
@@ -88,13 +105,33 @@ async function updatePassword(id, hash) {
   return true;
 }
 
+/** Crea un usuario (password ya debe venir hasheado) */
+async function create({ nombre, correo, passwordHash, rol = 'visor', id_empresa }) {
+  const { rows } = await pool.query(
+    `INSERT INTO usuarios (nombre, correo, password, rol, id_empresa, actualizado_en)
+     VALUES ($1,$2,$3,$4,$5,NOW())
+     RETURNING id, nombre, correo, rol, id_empresa, actualizado_en`,
+    [nombre, correo, passwordHash, rol, id_empresa]
+  );
+  return rows[0];
+}
+
+/** Elimina un usuario por id */
+async function remove(id) {
+  await pool.query('DELETE FROM usuarios WHERE id=$1', [id]);
+  return true;
+}
+
 module.exports = {
   buscarPorCorreo,
   getAll,
   getById,
   updateProfile,
+  updateProfileFull,
   getPasswordHash,
   updatePassword,
-  buscarPorCredenciales
+  buscarPorCredenciales,
+  create,
+  remove
 };
 

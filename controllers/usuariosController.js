@@ -63,13 +63,30 @@ async function getUsuario(req, res) {
 
 async function updateUsuario(req, res) {
   try {
-    const { nombre, correo, telefono } = req.body;
-    const u = await UsuarioModel.updateProfile(req.params.id, {
+    const id = Number(req.params.id);
+    const { nombre, correo, telefono, rol, id_empresa, password } = req.body;
+
+    // 1) Actualizar perfil base (nombre/correo/telefono/rol/id_empresa si los usas)
+    //    Usa un método del model que soporte estos campos (abajo te doy uno).
+    const updated = await UsuarioModel.updateProfileFull(id, {
       nombre,
       correo,
       telefono,
+      rol,
+      id_empresa,
     });
-    res.json(u);
+
+    if (!updated) return res.status(404).json({ error: "Usuario no encontrado" });
+
+    // 2) Si viene password, hashear y guardar
+    if (password && String(password).trim()) {
+      const newHash = await bcrypt.hash(password, 10);
+      await UsuarioModel.updatePassword(id, newHash);
+    }
+
+    // 3) Retornar el usuario ya actualizado (sin password)
+    const finalUser = await UsuarioModel.getById(id);
+    res.json(finalUser);
   } catch (e) {
     console.error(e);
     res.status(500).json({ error: "Error al actualizar usuario" });
@@ -96,9 +113,57 @@ async function updatePassword(req, res) {
   }
 }
 
+
+/** LISTAR usuarios de una empresa (sin auth: por query ?id_empresa=) */
+async function list(req, res) {
+  try {
+    // Si tienes auth, usa: const id_empresa = req.user?.id_empresa;
+    const id_empresa = Number(req.query.id_empresa);
+    if (!id_empresa) return res.status(400).json({ error: "Falta id_empresa" });
+
+    const rows = await UsuarioModel.getAll({ id_empresa });
+    res.json(rows);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error al listar usuarios" });
+  }
+}
+
+/** CREAR usuario (hash en controller) */
+async function create(req, res) {
+  try {
+    const { nombre, correo, password, rol = 'visor', id_empresa } = req.body;
+    if (!nombre || !correo || !password || !id_empresa) {
+      return res.status(400).json({ error: "Datos incompletos" });
+    }
+    const passwordHash = await bcrypt.hash(password, 10);
+    const nuevo = await UsuarioModel.create({ nombre, correo, passwordHash, rol, id_empresa });
+    res.status(201).json(nuevo);
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error al crear usuario" });
+  }
+}
+
+/** ELIMINAR usuario */
+async function remove(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ error: "ID inválido" });
+    await UsuarioModel.remove(id);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: "Error al eliminar usuario" });
+  }
+}
+
 module.exports = {
   login,
   getUsuario,
   updateUsuario,
+  list,
+  create,
+  remove,
   updatePassword,
 };
