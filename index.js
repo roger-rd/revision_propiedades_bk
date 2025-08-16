@@ -64,6 +64,19 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: err.message });
 });
 
+router.get('/db/ping', async (req, res) => {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    res.json({ success: true, time: result.rows[0].now });
+  } catch (err) {
+    console.error('Error al conectar con la BD:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.use('/api', routes);
+
+
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
