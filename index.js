@@ -42,7 +42,7 @@ app.use('/api/google-billing', require('./routes/googleBilling'));
 
 // app.use('/api/google-usage', require('./routes/googleUsage')); 
 
-
+app.use('/api', require('./routes/test'));
 
 
 /* ============ Jobs (opcional por bandera) ============ */
@@ -74,7 +74,7 @@ router.get('/db/ping', async (req, res) => {
   }
 });
 
-app.use('/api', routes);
+
 
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
