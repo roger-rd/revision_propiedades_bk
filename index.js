@@ -7,6 +7,9 @@ const { limpiarTokensExpirados } = require('./jobs/limpieza');
 
 const app = express();
 
+app.get('/api/health', (req, res) => res.json({ ok: true, at: new Date().toISOString() }));
+
+
 /* ============ Configuración base ============ */
 app.use(
   cors({
