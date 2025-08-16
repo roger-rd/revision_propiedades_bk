@@ -30,4 +30,4 @@ async function enviarCorreo(destinatario, asunto, mensajeHtml) {
   }
 }
 
-module.exports = enviarCorreo;
+module.exports = {enviarCorreo};

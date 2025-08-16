@@ -21,63 +21,6 @@ function htmlConfirmacion({
   </div>`;
 }
 
-// async function crear(req, res) {
-//   try {
-//     const { id_empresa, id_cliente, direccion, fecha, hora, observacion } = req.body;
-//     if (!id_empresa || !id_cliente || !direccion || !fecha || !hora) {
-//       return res.status(400).json({ error: "Faltan campos obligatorios." });
-//     }
-
-//     // 1) Validación anti-solape
-//     const solapa = await AgendaModel.existeSolape({ id_empresa, id_cliente, fecha, hora });
-//     if (solapa) return res.status(409).json({ error: "Ya existe una cita para este cliente en esa fecha y hora." });
-
-//     // 2) Crear
-//     const cita = await AgendaModel.crearAgenda({
-//       id_empresa, id_cliente, direccion, fecha, hora, observacion,
-//     });
-
-//     // 3) Datos para correo (empresa/cliente)
-//     // Tomamos info básica desde listarPorEmpresa para evitar otra consulta separada
-//     // pero lo correcto sería una query por id. Para mantenerlo simple:
-//     const fechaFmt = fecha; // viene YYYY-MM-DD
-//     const empresa_nombre = process.env.APP_NAME || "RDRP Revisión Casa";
-
-//     // Busca correo de cliente y empresa a partir de una consulta rápida:
-//     // (si ya los tienes en la sesión, puedes pasarlos desde frontend)
-//     // Reutilizamos obtenerPorFecha y filtramos
-//     const delDia = await AgendaModel.obtenerPorFecha(id_empresa, fechaFmt);
-//     const actual = delDia.find((x) => x.id === cita.id) || {};
-
-//     // 4) Enviar correos (cliente + empresa)
-//     const html = htmlConfirmacion({
-//       empresa_nombre,
-//       cliente_nombre: actual.cliente_nombre || "Cliente",
-//       direccion,
-//       fecha: fechaFmt,
-//       hora,
-//     });
-
-//     // Correo a cliente
-//     if (actual.cliente_correo) {
-//       await enviarCorreo(actual.cliente_correo, "Confirmación de visita", html);
-//     }
-//     // Correo a empresa
-//     const correoEmpresa = process.env.EMPRESA_NOTIF || null;
-//     if (correoEmpresa) {
-//        await enviarCorreo(correoEmpresa, "Nueva cita agendada", html);
-//     }
-
-//     res.status(201).json(cita);
-//   } catch (e) {
-//     console.error("Error al crear agenda:", e);
-//     if (String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")) {
-//       return res.status(409).json({ error: "Cita duplicada (solape detectado)." });
-//     }
-//     res.status(500).json({ error: "Error al registrar cita" });
-//   }
-// }
-
 async function crear(req, res) {
   try {
     const { id_empresa, id_cliente, direccion, fecha, hora, observacion } =

@@ -32,12 +32,12 @@ app.use('/api/auth', require('./routes/auth_reset'));
 
 app.use('/api/autocomplete', require('./routes/googleAutocomplete'));
 app.use('/api/place-details', require('./routes/googlePlaceDetails'));
-// app.use('/api/google-billing', require('./routes/googleBilling'));
-
-
-
+app.use('/api/google-billing', require('./routes/googleBilling'));
 
 // app.use('/api/google-usage', require('./routes/googleUsage')); 
+
+
+
 
 /* ============ Jobs (opcional por bandera) ============ */
 // Actívalo en producción solo si pones ENABLE_JOBS=true en .env
