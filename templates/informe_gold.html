@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>INSPECCIÓN GOLD — {{cliente}}</title>
+  <style>
+    @page { margin: 60px 48px; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #222; background: #fff; font-size: 13.5px; line-height: 1.45;
+    }
+
+    /* Paleta corporativa dinámica */
+    :root {
+      --prim: {{color_primario}};
+      --sec:  {{color_segundario}};
+      --borde: #DDE7EA;
+      --suave: #F5FAFB;
+      --texto-suave: #5a6970;
+    }
+
+    /* Portada */
+    .portada {
+      padding: 48px; text-align: center; border: 2px solid var(--prim);
+      border-radius: 16px; margin-top: 24px;
+    }
+    .logo { width: 140px; height: auto; margin-bottom: 12px; }
+    .marca { color: var(--prim); font-weight: 700; margin: 4px 0 16px; }
+    .titulo { font-size: 28px; letter-spacing: 0.5px; margin: 6px 0 12px; text-transform: uppercase; color: var(--prim); }
+    .sub { color: var(--texto-suave); margin: 4px 0; }
+    .meta { margin-top: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 24px; text-align: left; justify-content: center; }
+    .meta p { margin: 0; }
+
+    /* Encabezado/Contacto */
+    .contacto { margin-top: 14px; font-size: 12.5px; color: #333; }
+    .contacto strong { color: var(--prim); }
+
+    h2.secc {
+      font-size: 19px; margin: 28px 0 10px; padding-bottom: 8px;
+      border-bottom: 2px solid var(--sec);
+    }
+
+    /* Índice */
+    .indice {
+      border: 1px solid var(--borde); border-radius: 10px; background: #fff;
+      padding: 16px 20px; margin-top: 18px;
+    }
+    .indice ol { margin: 0 0 0 18px; }
+    .indice li { margin: 5px 0; }
+
+    /* Bloques descriptivos */
+    .card {
+      border: 1px solid var(--borde); border-radius: 10px; background: var(--suave);
+      padding: 16px 18px; margin-top: 12px;
+    }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px 18px; }
+
+    /* Lista de recintos */
+    ul.recintos { margin: 6px 0 0 18px; }
+
+    /* Simbología */
+    .legend { display: flex; flex-wrap: wrap; gap: 8px 16px; margin-top: 8px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; padding:6px 10px; border-radius: 999px; background:#fff; border:1px solid var(--borde); }
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; }
+    .dot.pend { background:#E53935; }
+    .dot.pers { background:#FB8C00; }
+    .dot.real { background:#43A047; }
+    .dot.na   { background:#90A4AE; }
+
+    /* Tabla técnica */
+    table.tabla {
+      width: 100%; border-collapse: separate; border-spacing: 0; margin-top: 10px;
+      font-size: 12.75px; border:1px solid var(--borde); overflow:hidden; border-radius: 10px;
+    }
+    .tabla thead th {
+      background: #F0F6F8; color:#21313A; text-align:left; font-weight:600; padding:10px 10px; border-bottom:1px solid var(--borde);
+    }
+    .tabla td { padding:10px; border-bottom:1px solid var(--borde); vertical-align: top; }
+    .tabla tr:nth-child(even) td { background:#FCFEFF; }
+    .tabla tr:last-child td { border-bottom:none; }
+    .foto { width: 120px; height: auto; border:1px solid var(--borde); border-radius:8px; }
+
+    /* Resumen conteos */
+    .resumen { margin-top: 8px; }
+    .kpi {
+      border:1px solid var(--borde); border-radius: 12px; background:#fff; padding:12px 14px;
+    }
+    .kpi h3 { margin:0 0 6px; font-size:14px; color:#25343B; }
+    .kpi strong { font-size:18px; color:var(--prim); }
+
+    /* Plano placeholder */
+    .plano {
+      border:2px dashed var(--borde); border-radius:12px; height:260px; display:flex; align-items:center; justify-content:center; color:#7a8a93;
+      background: linear-gradient(135deg,#fafcfd 0%, #f6fbfc 100%);
+      font-size: 13px;
+    }
+
+    /* Footer */
+    .footer { margin-top: 32px; text-align:center; color:#7a8a93; font-size:12px; }
+  </style>
+</head>
+<body>
+
+  <!-- PORTADA -->
+  <div class="portada">
+    <img src="{{logo}}" class="logo" alt="logo" />
+    <h2 class="marca">{{nombre_empresa}}</h2>
+    <div class="titulo">INSPECCIÓN GOLD</div>
+    <p class="sub"><strong>Cliente:</strong> {{cliente}} &nbsp;&middot;&nbsp; <strong>RUT:</strong> {{rut}}</p>
+    <p class="sub"><strong>Dirección de inspección:</strong> {{direccion}}</p>
+    <p class="sub"><strong>Fecha de inspección:</strong> {{fecha}}</p>
+
+    <div class="meta">
+      <p><strong>Inmobiliaria:</strong> {{inmobiliaria}}</p>
+      <p><strong>Tipología:</strong> {{tipo_propiedad}}</p>
+      <p><strong>Tipo de inspección:</strong> {{tipo_inspeccion}}</p>
+      <p><strong>Metros cuadrados:</strong> {{tamano}}</p>
+      <p><strong>Estado solicitud:</strong> {{estado}}</p>
+      <p><strong>Contacto:</strong> +56 9 4209 7181 · contacto@inspecciones.cl · www.inspecciones.cl</p>
+    </div>
+
+    <div class="contacto">
+      <strong>RDRP Inspecciones</strong> — Servicio profesional de inspección y entrega.
+    </div>
+  </div>
+
+  <!-- ÍNDICE -->
+  <h2 class="secc">ÍNDICE</h2>
+  <div class="indice">
+    <ol>
+      <li>Información General</li>
+      <li>Alcances de la Inspección</li>
+      <li>Tus Derechos</li>
+      <li>Plano de la Propiedad</li>
+      <li>Recintos de la Propiedad</li>
+      <li>Medición de la Propiedad</li>
+      <li>Revisión Técnica de la Propiedad</li>
+      <li>Conclusiones y Sugerencias</li>
+    </ol>
+  </div>
+
+  <!-- 1. INFORMACIÓN GENERAL -->
+  <h2 class="secc">1. Información General</h2>
+  <div class="card grid-3">
+    <div><strong>Cliente:</strong> {{cliente}}</div>
+    <div><strong>RUT:</strong> {{rut}}</div>
+    <div><strong>Fecha:</strong> {{fecha}}</div>
+    <div><strong>Dirección:</strong> {{direccion}}</div>
+    <div><strong>Inmobiliaria:</strong> {{inmobiliaria}}</div>
+    <div><strong>Teléfono:</strong> {{telefono}}</div>
+    <div><strong>Tipología:</strong> {{tipo_propiedad}}</div>
+    <div><strong>Tipo de inspección:</strong> {{tipo_inspeccion}}</div>
+    <div><strong>Correo:</strong> {{correo}}</div>
+  </div>
+
+  <!-- 2. ALCANCES -->
+  <h2 class="secc">2. Alcances de la Inspección</h2>
+  <div class="card">
+    <p>Se inspecciona de acuerdo al <strong>Manual de Tolerancias CDT</strong>, mediante una <strong>revisión visual</strong> para identificar defectos en áreas como estructura, terminaciones, pintura, revestimientos, puertas/ventanas, instalaciones (eléctrica, sanitaria y gas), entre otras.</p>
+    <p style="color:#6b7d86;margin-top:6px">La inspección describe el estado observado el día de la visita, sin garantizar condiciones futuras.</p>
+  </div>
+
+  <!-- 3. TUS DERECHOS -->
+  <h2 class="secc">3. Tus Derechos</h2>
+  <div class="card">
+    <p>Este informe te permite exigir a la inmobiliaria la reparación de los puntos que no cumplan con las normas de tolerancia. Tienes derecho a una postventa oportuna y responsable.</p>
+    <ul>
+      <li><strong>3 años</strong>: terminaciones o acabados</li>
+      <li><strong>5 años</strong>: instalaciones o elementos constructivos</li>
+      <li><strong>10 años</strong>: estructura soportante</li>
+    </ul>
+  </div>
+
+  <!-- 4. PLANO -->
+  <h2 class="secc">4. Plano de la Propiedad</h2>
+  <div class="plano">Plano no disponible</div>
+
+  <!-- 5. RECINTOS -->
+  <h2 class="secc">5. Recintos de la Propiedad</h2>
+  <div class="card">
+    <ul class="recintos">
+      {{lista_espacios}}
+    </ul>
+  </div>
+
+  <!-- 6. MEDICIÓN -->
+  <h2 class="secc">6. Medición de la Propiedad</h2>
+  <div class="card">
+    <p><strong>Metros cuadrados totales:</strong> {{tamano}}</p>
+    <p style="color:#6b7d86">La tolerancia de superficie útil aceptada usualmente es ±1 m² debido a variaciones propias del proceso constructivo.</p>
+  </div>
+
+  <!-- 7. REVISIÓN TÉCNICA -->
+  <h2 class="secc">7. Revisión Técnica de la Propiedad</h2>
+  <div class="card resumen">
+    <div class="grid-3">
+      <div class="kpi"><h3>Observaciones Totales</h3><strong>{{total_observaciones}}</strong></div>
+      <div class="kpi"><h3>Pendientes</h3><strong>{{pendientes}}</strong></div>
+      <div class="kpi"><h3>Persiste</h3><strong>{{persiste}}</strong></div>
+    </div>
+    <div class="legend" style="margin-top:10px">
+      <span class="pill"><span class="dot pend"></span> Pendiente</span>
+      <span class="pill"><span class="dot pers"></span> Persiste</span>
+      <span class="pill"><span class="dot real"></span> Realizado</span>
+      <span class="pill"><span class="dot na"></span> N/A</span>
+    </div>
+  </div>
+
+  {{tabla_observaciones}}
+
+  <!-- 8. CONCLUSIONES Y SUGERENCIAS -->
+  <h2 class="secc">8. Conclusiones y Sugerencias</h2>
+  <div class="card">
+    <p>Se recomienda <strong>subsanar</strong> las observaciones antes de la entrega definitiva. Puedes exigir correcciones en todos los puntos que no cumplan con estándares. En casos complejos cuya reparación implique daños mayores, se sugiere llegar a un acuerdo de solución entre las partes.</p>
+    <p style="margin-top:8px">Resumen: {{pendientes}} pendiente(s), {{persiste}} persiste, {{realizados}} realizado(s). Priorizar ítems funcionales (filtraciones, instalaciones, seguridad) y luego terminaciones.</p>
+  </div>
+
+  <div class="footer">
+    © 2025 {{nombre_empresa}} · Informe generado automáticamente
+  </div>
+
+  <script>
+    /* Limpieza de "undefined" al volcar HTML a PDF */
+    document.body.innerHTML = document.body.innerHTML.replace(/undefined/g, "-");
+  </script>
+</body>
+</html>

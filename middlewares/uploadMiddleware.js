@@ -38,11 +38,11 @@ const storageLogo = new CloudinaryStorage({
 
 const uploadObservaciones = multer({ 
   storage: storageObservaciones,
-  limits: {fileSize: 5 * 1024 *1024 }, // 5MB
+  limits: {fileSize: 10 * 1024 *1024 }, // 10MB
 });
 const uploadLogo = multer({ 
   storage: storageLogo,
-  limits: {fileSize: 5 * 1024 *1024 }, // 5MB
+  limits: {fileSize: 10 * 1024 *1024 }, // 10MB
 });
 
 module.exports = { uploadObservaciones, uploadLogo };
