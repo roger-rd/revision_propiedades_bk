@@ -98,4 +98,4 @@ Cada empresa tiene su propio:
 
 ## 💬 Autor
 
-Desarrollado por Roger Rodríguez 🧑‍💻 con guía de Anto 💕
+Desarrollado por Roger Rodríguez
