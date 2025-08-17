@@ -8,7 +8,7 @@
     "start": "node index.js",
     "start:jobs": "ENABLE_JOBS=true node index.js",
     "dev:jobs": "ENABLE_JOBS=true nodemon index.dev.js",
-    "postinstall": "npx puppeteer browsers install chrome"
+    "postinstall": "npx puppeteer browsers install chromium"
   },
   "keywords": [],
   "author": "",
@@ -28,10 +28,9 @@
     "node-cron": "^4.2.1",
     "nodemailer": "^6.10.1",
     "pg": "^8.14.1",
-    "puppeteer": "^24.16.2"
+    "puppeteer": "^23.0.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9",
-    "puppeteer": "^23.0.0"
+    "nodemon": "^3.1.9"
   }
 }

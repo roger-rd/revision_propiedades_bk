@@ -1,155 +1,136 @@
-const express = require("express");
-const fs = require("fs");
-const path = require("path");
-const axios = require("axios");
-const puppeteer = require("puppeteer"); // usa chrome incluido
-const pool = require("../config/bd_revision_casa.js");
+const express = require('express');
+const fs = require('fs');
+const path = require('path');
+const axios = require('axios');
+const puppeteer = require('puppeteer');          // usaremos chromium instalado en el build
+const pool = require('../config/bd_revision_casa.js');
 
 const router = express.Router();
 
-// helper para reemplazos múltiples
+/**
+ * Reemplazo seguro de {{llaves}} en la plantilla (todas las ocurrencias)
+ */
 function replAll(html, key, val) {
-  const safe = String(val ?? "-");
-  return html.replace(new RegExp(`\\{\\{${key}\\}\\}`, "g"), safe);
+  const safe = String(val ?? '-');
+  return html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), safe);
 }
 
-// helpers arriba del archivo
+/**
+ * Base del API propia:
+ * - En producción usa INTERNAL_API_URL si está definida (recomendado).
+ * - Si no está, deduce desde la request (sirve en local o detrás de proxy).
+ */
 function getApiBase(req) {
-  // 1) Usa variable de entorno si está definida (recomendado en producción)
   if (process.env.INTERNAL_API_URL) {
-    return process.env.INTERNAL_API_URL.replace(/\/+$/, ""); // sin slash final
+    return process.env.INTERNAL_API_URL.replace(/\/+$/, '');
   }
-
-  // 2) Fallback: dedúcelo desde la misma request (útil en local o proxys)
-  const proto = req.get("x-forwarded-proto") || req.protocol; // respeta proxy
-  const host = req.get("host");
+  const proto = req.get('x-forwarded-proto') || req.protocol;
+  const host  = req.get('host');
   return `${proto}://${host}/api`;
 }
 
-router.get("/:id/generar", async (req, res) => {
+router.get('/:id/generar', async (req, res) => {
   const idSolicitud = req.params.id;
-  const template = (req.query.template || "").toLowerCase(); // "gold" o ""
+  const template = (req.query.template || '').toLowerCase(); // "gold" o ""
 
   // LOG: inicio
-  console.log("[INF]", "Generar informe", { idSolicitud, template });
+  console.log('[INF] Generar informe →', { idSolicitud, template });
 
   try {
-    // 1) Traer datos completos de la solicitud desde tu propio API
+    // ================================
+    // 1) Obtener la solicitud completa
+    // ================================
     let solicitud;
-    // try {
-    //   const { data } = await axios.get(
-    //     `http://localhost:3001/api/solicitudes/${idSolicitud}/completa`,
-    //     { timeout: 15000 }
-    //   );
-    //   solicitud = data?.solicitud;
-    // } catch (e) {
-    //   console.error(
-    //     "[ERR] solicitando /completa:",
-    //     e?.response?.status,
-    //     e?.message
-    //   );
-    //   throw new Error(
-    //     "No se pudo obtener la solicitud completa desde el backend."
-    //   );
-    // }
     try {
-      const apiBase = getApiBase(req); // <- NUEVO
+      const apiBase = getApiBase(req);
       const url = `${apiBase}/solicitudes/${idSolicitud}/completa`;
 
-      // Si tu endpoint /completa requiere auth de servicio, descomenta esto:
-      // const headers = process.env.SERVICE_TOKEN ? { Authorization: `Bearer ${process.env.SERVICE_TOKEN}` } : undefined;
+      // Si /completa requiere auth de servicio, descomenta:
+      // const headers = process.env.SERVICE_TOKEN
+      //   ? { Authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
+      //   : undefined;
 
       const { data } = await axios.get(url, {
         timeout: 15000,
         // headers,
       });
-
       solicitud = data?.solicitud;
     } catch (e) {
-      console.error(
-        "[ERR] solicitando /completa:",
-        e?.response?.status,
-        e?.message
-      );
-      throw new Error(
-        "No se pudo obtener la solicitud completa desde el backend."
-      );
+      console.error('[ERR] solicitando /completa:', e?.response?.status, e?.message);
+      throw new Error('No se pudo obtener la solicitud completa desde el backend.');
     }
 
-    if (!solicitud)
-      throw new Error("La solicitud viene vacía o sin formato esperado.");
+    if (!solicitud) {
+      throw new Error('La solicitud viene vacía o sin formato esperado.');
+    }
 
-    // 2) Empresa (logo/colores)
+    // =========================================
+    // 2) Traer datos de la empresa (logo/colores)
+    // =========================================
     const empresaResult = await pool.query(
-      "SELECT * FROM empresas WHERE id = $1",
+      'SELECT * FROM empresas WHERE id = $1',
       [solicitud.id_empresa]
     );
     const empresa = empresaResult.rows[0] || {};
 
-    // 3) Rutas de plantillas robustas
+    // ========================================
+    // 3) Cargar plantilla HTML (gold o normal)
+    // ========================================
     const tplPath = path.resolve(
       __dirname,
-      "..",
-      "templates",
-      template === "gold" ? "informe_gold.html" : "informe.html"
+      '..',
+      'templates',
+      template === 'gold' ? 'informe_gold.html' : 'informe.html'
     );
 
     if (!fs.existsSync(tplPath)) {
-      console.error("[ERR] Plantilla no encontrada:", tplPath);
+      console.error('[ERR] Plantilla no encontrada:', tplPath);
       throw new Error(`Plantilla no encontrada: ${tplPath}`);
     }
 
-    let html = fs.readFileSync(tplPath, "utf8");
+    let html = fs.readFileSync(tplPath, 'utf8');
 
-    // 4) Lista de recintos
-    const espacios = Array.isArray(solicitud.espacios)
-      ? solicitud.espacios
-      : [];
-    const espaciosListados = espacios
-      .map((e) => `<li>${e?.nombre ?? "-"}</li>`)
-      .join("");
-    html = replAll(html, "lista_espacios", espaciosListados);
+    // ============================================
+    // 4) Lista de recintos / espacios (como <li>)
+    // ============================================
+    const espacios = Array.isArray(solicitud.espacios) ? solicitud.espacios : [];
+    const espaciosListados = espacios.map(e => `<li>${e?.nombre ?? '-'}</li>`).join('');
+    html = replAll(html, 'lista_espacios', espaciosListados);
 
-    // 5) Reemplazos base (todas las ocurrencias)
+    // =========================================
+    // 5) Reemplazos base de campos del informe
+    // =========================================
     const cliente = solicitud.cliente || {};
-    const empresaNombre = empresa.nombre || "RDRP Inspecciones";
+    const empresaNombre = empresa.nombre || 'RDRP Inspecciones';
 
-    html = replAll(html, "cliente", cliente.nombre);
-    html = replAll(html, "rut", cliente.rut);
-    html = replAll(html, "correo", cliente.correo);
-    html = replAll(html, "telefono", cliente.telefono);
-    html = replAll(html, "direccion", solicitud.direccion);
+    html = replAll(html, 'cliente', cliente.nombre);
+    html = replAll(html, 'rut', cliente.rut);
+    html = replAll(html, 'correo', cliente.correo);
+    html = replAll(html, 'telefono', cliente.telefono);
+    html = replAll(html, 'direccion', solicitud.direccion);
     html = replAll(
       html,
-      "fecha",
-      new Date(solicitud.fecha_solicitud || Date.now()).toLocaleDateString(
-        "es-CL"
-      )
+      'fecha',
+      new Date(solicitud.fecha_solicitud || Date.now()).toLocaleDateString('es-CL')
     );
-    html = replAll(html, "tamano", solicitud.tamano);
-    html = replAll(html, "estado", solicitud.estado);
-    html = replAll(html, "inmobiliaria", solicitud.inmobiliaria);
-    html = replAll(html, "tipo_propiedad", solicitud.tipo_propiedad);
-    html = replAll(html, "tipo_inspeccion", solicitud.tipo_inspeccion);
+    html = replAll(html, 'tamano', solicitud.tamano);
+    html = replAll(html, 'estado', solicitud.estado);
+    html = replAll(html, 'inmobiliaria', solicitud.inmobiliaria);
+    html = replAll(html, 'tipo_propiedad', solicitud.tipo_propiedad);
+    html = replAll(html, 'tipo_inspeccion', solicitud.tipo_inspeccion);
 
-    html = replAll(html, "logo", empresa.logo_url || "");
-    html = replAll(html, "color_primario", empresa.color_primario || "#0D6E6E");
-    html = replAll(
-      html,
-      "color_segundario",
-      empresa.color_segundario || "#2A8C8C"
-    );
-    html = replAll(html, "nombre_empresa", empresaNombre);
+    html = replAll(html, 'logo', empresa.logo_url || '');
+    html = replAll(html, 'color_primario', empresa.color_primario || '#0D6E6E');
+    html = replAll(html, 'color_segundario', empresa.color_segundario || '#2A8C8C');
+    html = replAll(html, 'nombre_empresa', empresaNombre);
 
-    // 6) Tabla de observaciones por espacio
-    let tablaHTML = "";
+    // ==========================================================
+    // 6) Tabla de observaciones por espacio (con 2 fotos opc.)
+    // ==========================================================
+    let tablaHTML = '';
     for (const espacio of espacios) {
-      const obsList = Array.isArray(espacio.observaciones)
-        ? espacio.observaciones
-        : [];
-      tablaHTML += `<h3 style="margin:22px 0 8px; padding:8px 12px; background:#F0F6F8; border-left:4px solid ${
-        empresa.color_primario || "#0D6E6E"
-      }">${espacio?.nombre ?? "-"}</h3>`;
+      const obsList = Array.isArray(espacio.observaciones) ? espacio.observaciones : [];
+      tablaHTML += `<h3 style="margin:22px 0 8px; padding:8px 12px; background:#F0F6F8; border-left:4px solid ${empresa.color_primario || '#0D6E6E'}">${espacio?.nombre ?? '-'}</h3>`;
       tablaHTML += `
         <table class="tabla">
           <thead>
@@ -169,90 +150,64 @@ router.get("/:id/generar", async (req, res) => {
         tablaHTML += `
           <tr>
             <td>${idx + 1}</td>
-            <td>${obs?.estado ?? "-"}</td>
-            <td>${obs?.elemento ?? "-"}</td>
-            <td>${obs?.descripcion ?? "-"}</td>
-            <td>${
-              fotos[0]?.url_foto
-                ? `<img class="foto" src="${fotos[0].url_foto}" />`
-                : ""
-            }</td>
-            <td>${
-              fotos[1]?.url_foto
-                ? `<img class="foto" src="${fotos[1].url_foto}" />`
-                : ""
-            }</td>
+            <td>${obs?.estado ?? '-'}</td>
+            <td>${obs?.elemento ?? '-'}</td>
+            <td>${obs?.descripcion ?? '-'}</td>
+            <td>${fotos[0]?.url_foto ? `<img class="foto" src="${fotos[0].url_foto}" />` : ''}</td>
+            <td>${fotos[1]?.url_foto ? `<img class="foto" src="${fotos[1].url_foto}" />` : ''}</td>
           </tr>
         `;
       });
       tablaHTML += `</tbody></table>`;
     }
-    html = replAll(html, "tabla_observaciones", tablaHTML);
+    html = replAll(html, 'tabla_observaciones', tablaHTML);
 
-    // 7) KPIs
-    const allObs = espacios.flatMap((e) =>
-      Array.isArray(e.observaciones) ? e.observaciones : []
-    );
+    // ======================
+    // 7) KPIs de resumen
+    // ======================
+    const allObs = espacios.flatMap(e => Array.isArray(e.observaciones) ? e.observaciones : []);
     const total = allObs.length;
-    const pendientes = allObs.filter(
-      (o) => (o.estado || "").toLowerCase() === "pendiente"
-    ).length;
-    const realizados = allObs.filter(
-      (o) => (o.estado || "").toLowerCase() === "realizado"
-    ).length;
-    const persiste = allObs.filter(
-      (o) => (o.estado || "").toLowerCase() === "persiste"
-    ).length;
+    const pendientes = allObs.filter(o => (o.estado || '').toLowerCase() === 'pendiente').length;
+    const realizados = allObs.filter(o => (o.estado || '').toLowerCase() === 'realizado').length;
+    const persiste = allObs.filter(o => (o.estado || '').toLowerCase() === 'persiste').length;
 
-    html = replAll(html, "total_observaciones", total);
-    html = replAll(html, "pendientes", pendientes);
-    html = replAll(html, "realizados", realizados);
-    html = replAll(html, "persiste", persiste);
+    html = replAll(html, 'total_observaciones', total);
+    html = replAll(html, 'pendientes', pendientes);
+    html = replAll(html, 'realizados', realizados);
+    html = replAll(html, 'persiste', persiste);
 
-    // 8) Asegurar carpeta de salida
-    const outDir = path.resolve(__dirname, "..", "public", "informes");
-    if (!fs.existsSync(outDir)) fs.mkdirSync(outDir, { recursive: true });
-
-    // 9) Generar PDF (con flags seguros)
+    // ==========================================
+    // 8) Generar PDF con Puppeteer (sin disco)
+    //    - Render/Heroku friendly: sin rutas locales
+    // ==========================================
     const browser = await puppeteer.launch({
-      headless: true, // en Render mejor true
-      args: ["--no-sandbox", "--disable-setuid-sandbox"],
-      executablePath:
-        process.env.PUPPETEER_EXECUTABLE_PATH ||
-        (await puppeteer.executablePath()), // usa el que instaló puppeteer en build
+      headless: true,                                // en servidores, true
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
+      executablePath: puppeteer.executablePath(),    // usa el binario instalado en el postinstall
     });
-    const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: "networkidle0" });
 
-    const nombreCliente = String(cliente.nombre || "informe")
-      .toLowerCase()
-      .replace(/[^a-z0-9]/gi, "_")
-      .substring(0, 50);
+    try {
+      const page = await browser.newPage();
+      await page.setContent(html, { waitUntil: 'networkidle0' });
 
-    const filename = `informe_${
-      template === "gold" ? "gold_" : ""
-    }${nombreCliente}.pdf`;
-    const pdfPath = path.join(outDir, filename);
+      const pdfBuffer = await page.pdf({
+        format: 'letter',
+        printBackground: true,
+        margin: { top: '22mm', bottom: '18mm', left: '12mm', right: '12mm' },
+      });
 
-    await page.pdf({
-      path: pdfPath,
-      format: "letter",
-      printBackground: true,
-      margin: { top: "22mm", bottom: "18mm", left: "12mm", right: "12mm" },
-    });
-    await browser.close();
-
-    // 10) Responder
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `inline; filename=${filename}`);
-    return res.sendFile(pdfPath);
+      // 9) Responder el PDF en streaming (inline)
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=informe${template === 'gold' ? '_gold' : ''}.pdf`);
+      return res.end(pdfBuffer);
+    } finally {
+      await browser.close();
+    }
   } catch (error) {
     // LOG detallado al servidor
-    console.error("[ERR] Generando PDF:", error?.message, error?.stack);
+    console.error('[ERR] Generando PDF:', error?.message, error?.stack);
     // Respuesta breve al cliente
-    return res
-      .status(500)
-      .json({ error: "Error generando el PDF", detalle: error?.message });
+    return res.status(500).json({ error: 'Error generando el PDF', detalle: error?.message });
   }
 });
 
