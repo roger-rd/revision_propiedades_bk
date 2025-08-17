@@ -1,25 +1,29 @@
+// routes/informes.js
+// ==========================================================
+// Generación de PDF de informes (normal / gold) con puppeteer-core
+// + @sparticuz/chromium — compatible con Render (sin disco, sin cachés)
+// ==========================================================
+
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
-const puppeteer = require('puppeteer');          // usaremos chromium instalado en el build
+
+// 👇 reemplazo: usamos chromium + puppeteer-core
+const chromium = require('@sparticuz/chromium');
+const puppeteer = require('puppeteer-core');
+
 const pool = require('../config/bd_revision_casa.js');
 
 const router = express.Router();
 
-/**
- * Reemplazo seguro de {{llaves}} en la plantilla (todas las ocurrencias)
- */
+/** Reemplazo seguro de {{llaves}} en la plantilla */
 function replAll(html, key, val) {
   const safe = String(val ?? '-');
   return html.replace(new RegExp(`\\{\\{${key}\\}\\}`, 'g'), safe);
 }
 
-/**
- * Base del API propia:
- * - En producción usa INTERNAL_API_URL si está definida (recomendado).
- * - Si no está, deduce desde la request (sirve en local o detrás de proxy).
- */
+/** Base del API propia (ENV o deducida del request) */
 function getApiBase(req) {
   if (process.env.INTERNAL_API_URL) {
     return process.env.INTERNAL_API_URL.replace(/\/+$/, '');
@@ -33,73 +37,49 @@ router.get('/:id/generar', async (req, res) => {
   const idSolicitud = req.params.id;
   const template = (req.query.template || '').toLowerCase(); // "gold" o ""
 
-  // LOG: inicio
   console.log('[INF] Generar informe →', { idSolicitud, template });
 
   try {
-    // ================================
-    // 1) Obtener la solicitud completa
-    // ================================
+    // 1) Solicitud completa
     let solicitud;
     try {
       const apiBase = getApiBase(req);
       const url = `${apiBase}/solicitudes/${idSolicitud}/completa`;
 
-      // Si /completa requiere auth de servicio, descomenta:
       // const headers = process.env.SERVICE_TOKEN
       //   ? { Authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
       //   : undefined;
 
-      const { data } = await axios.get(url, {
-        timeout: 15000,
-        // headers,
-      });
+      const { data } = await axios.get(url, { timeout: 15000 /*, headers*/ });
       solicitud = data?.solicitud;
     } catch (e) {
       console.error('[ERR] solicitando /completa:', e?.response?.status, e?.message);
       throw new Error('No se pudo obtener la solicitud completa desde el backend.');
     }
 
-    if (!solicitud) {
-      throw new Error('La solicitud viene vacía o sin formato esperado.');
-    }
+    if (!solicitud) throw new Error('La solicitud viene vacía o sin formato esperado.');
 
-    // =========================================
-    // 2) Traer datos de la empresa (logo/colores)
-    // =========================================
-    const empresaResult = await pool.query(
-      'SELECT * FROM empresas WHERE id = $1',
-      [solicitud.id_empresa]
-    );
+    // 2) Empresa (logo/colores)
+    const empresaResult = await pool.query('SELECT * FROM empresas WHERE id = $1', [solicitud.id_empresa]);
     const empresa = empresaResult.rows[0] || {};
 
-    // ========================================
-    // 3) Cargar plantilla HTML (gold o normal)
-    // ========================================
+    // 3) Plantilla HTML
     const tplPath = path.resolve(
-      __dirname,
-      '..',
-      'templates',
+      __dirname, '..', 'templates',
       template === 'gold' ? 'informe_gold.html' : 'informe.html'
     );
-
     if (!fs.existsSync(tplPath)) {
       console.error('[ERR] Plantilla no encontrada:', tplPath);
       throw new Error(`Plantilla no encontrada: ${tplPath}`);
     }
-
     let html = fs.readFileSync(tplPath, 'utf8');
 
-    // ============================================
-    // 4) Lista de recintos / espacios (como <li>)
-    // ============================================
+    // 4) Lista de espacios
     const espacios = Array.isArray(solicitud.espacios) ? solicitud.espacios : [];
     const espaciosListados = espacios.map(e => `<li>${e?.nombre ?? '-'}</li>`).join('');
     html = replAll(html, 'lista_espacios', espaciosListados);
 
-    // =========================================
-    // 5) Reemplazos base de campos del informe
-    // =========================================
+    // 5) Reemplazos base
     const cliente = solicitud.cliente || {};
     const empresaNombre = empresa.nombre || 'RDRP Inspecciones';
 
@@ -108,11 +88,7 @@ router.get('/:id/generar', async (req, res) => {
     html = replAll(html, 'correo', cliente.correo);
     html = replAll(html, 'telefono', cliente.telefono);
     html = replAll(html, 'direccion', solicitud.direccion);
-    html = replAll(
-      html,
-      'fecha',
-      new Date(solicitud.fecha_solicitud || Date.now()).toLocaleDateString('es-CL')
-    );
+    html = replAll(html, 'fecha', new Date(solicitud.fecha_solicitud || Date.now()).toLocaleDateString('es-CL'));
     html = replAll(html, 'tamano', solicitud.tamano);
     html = replAll(html, 'estado', solicitud.estado);
     html = replAll(html, 'inmobiliaria', solicitud.inmobiliaria);
@@ -124,9 +100,7 @@ router.get('/:id/generar', async (req, res) => {
     html = replAll(html, 'color_segundario', empresa.color_segundario || '#2A8C8C');
     html = replAll(html, 'nombre_empresa', empresaNombre);
 
-    // ==========================================================
-    // 6) Tabla de observaciones por espacio (con 2 fotos opc.)
-    // ==========================================================
+    // 6) Tabla de observaciones
     let tablaHTML = '';
     for (const espacio of espacios) {
       const obsList = Array.isArray(espacio.observaciones) ? espacio.observaciones : [];
@@ -162,9 +136,7 @@ router.get('/:id/generar', async (req, res) => {
     }
     html = replAll(html, 'tabla_observaciones', tablaHTML);
 
-    // ======================
-    // 7) KPIs de resumen
-    // ======================
+    // 7) KPIs
     const allObs = espacios.flatMap(e => Array.isArray(e.observaciones) ? e.observaciones : []);
     const total = allObs.length;
     const pendientes = allObs.filter(o => (o.estado || '').toLowerCase() === 'pendiente').length;
@@ -176,14 +148,12 @@ router.get('/:id/generar', async (req, res) => {
     html = replAll(html, 'realizados', realizados);
     html = replAll(html, 'persiste', persiste);
 
-    // ==========================================
-    // 8) Generar PDF con Puppeteer (sin disco)
-    //    - Render/Heroku friendly: sin rutas locales
-    // ==========================================
+    // 8) Generar PDF con puppeteer-core + @sparticuz/chromium (sin disco)
     const browser = await puppeteer.launch({
-      headless: true,                                // en servidores, true
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      executablePath: puppeteer.executablePath(),    // usa el binario instalado en el postinstall
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath(),
+      headless: chromium.headless, // true en Render
     });
 
     try {
@@ -196,7 +166,6 @@ router.get('/:id/generar', async (req, res) => {
         margin: { top: '22mm', bottom: '18mm', left: '12mm', right: '12mm' },
       });
 
-      // 9) Responder el PDF en streaming (inline)
       res.setHeader('Content-Type', 'application/pdf');
       res.setHeader('Content-Disposition', `inline; filename=informe${template === 'gold' ? '_gold' : ''}.pdf`);
       return res.end(pdfBuffer);
@@ -204,9 +173,7 @@ router.get('/:id/generar', async (req, res) => {
       await browser.close();
     }
   } catch (error) {
-    // LOG detallado al servidor
     console.error('[ERR] Generando PDF:', error?.message, error?.stack);
-    // Respuesta breve al cliente
     return res.status(500).json({ error: 'Error generando el PDF', detalle: error?.message });
   }
 });
