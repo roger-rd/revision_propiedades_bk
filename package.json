@@ -7,7 +7,8 @@
     "dev": "nodemon index.dev.js",
     "start": "node index.js",
     "start:jobs": "ENABLE_JOBS=true node index.js",
-    "dev:jobs": "ENABLE_JOBS=true nodemon index.dev.js"
+    "dev:jobs": "ENABLE_JOBS=true nodemon index.dev.js",
+    "postinstall": "npx puppeteer browsers install chrome"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +31,7 @@
     "puppeteer": "^24.16.2"
   },
   "devDependencies": {
-    "nodemon": "^3.1.9"
+    "nodemon": "^3.1.9",
+    "puppeteer": "^23.0.0"
   }
 }

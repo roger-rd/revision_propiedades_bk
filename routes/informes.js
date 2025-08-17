@@ -215,8 +215,11 @@ router.get("/:id/generar", async (req, res) => {
 
     // 9) Generar PDF (con flags seguros)
     const browser = await puppeteer.launch({
-      headless: "new",
+      headless: true, // en Render mejor true
       args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      executablePath:
+        process.env.PUPPETEER_EXECUTABLE_PATH ||
+        (await puppeteer.executablePath()), // usa el que instaló puppeteer en build
     });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: "networkidle0" });
