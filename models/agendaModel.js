@@ -84,6 +84,14 @@ async function yaEnviado(agenda_id, tipo) {
   return rows.length > 0;
 }
 
+async function obtenerCorreoEmpresa(id_empresa) {
+  const { rows } = await pool.query(
+    `SELECT correo FROM empresas WHERE id=$1 LIMIT 1`,
+    [id_empresa]
+  );
+  return rows[0]?.correo || null;
+}
+
 module.exports = {
   crearAgenda,
   listarPorEmpresa,
@@ -92,4 +100,5 @@ module.exports = {
   obtenerPorFecha,
   registrarRecordatorio,
   yaEnviado,
+  obtenerCorreoEmpresa
 };
