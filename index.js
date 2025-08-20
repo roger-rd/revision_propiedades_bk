@@ -33,10 +33,10 @@ const corsOptions = {
   credentials: true, // ponlo en false si NO usas cookies/sesión
 };
 
-// 1) Aplica CORS a todo (una sola vez)
+// 1) Aplica CORS (una sola vez)
 app.use(cors(corsOptions));
 
-// 2) Fuerza ACAO y credenciales cuando el origin es permitido
+// 2) Fuerza headers (incluye respuestas normales)
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
@@ -49,19 +49,18 @@ app.use((req, res, next) => {
   next();
 });
 
-// 3) Preflight explícito (asegura headers en 204)
-app.options('(.*)', (req, res) => {
-  const origin = req.headers.origin;
-  if (origin && ALLOWED_ORIGINS.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
-    if (corsOptions.credentials) {
-      res.setHeader('Access-Control-Allow-Credentials', 'true');
+// 3) Preflight genérico SIN ruta (evita path-to-regexp)
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    const origin = req.headers.origin;
+    if (origin && ALLOWED_ORIGINS.includes(origin)) {
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+      return res.sendStatus(204);
     }
-    return res.sendStatus(204);
+    return res.sendStatus(403);
   }
-  return res.sendStatus(403);
+  next();
 });
 
 
