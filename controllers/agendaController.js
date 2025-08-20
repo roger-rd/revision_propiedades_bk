@@ -7,27 +7,68 @@ function cap(s) {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
-function formatearFechaHora(fechaISO, horaHHMM) {
-  // fechaISO: "YYYY-MM-DD", horaHHMM: "HH:MM" (recortar si te llega "HH:MM:SS")
-  const h = (horaHHMM || "").slice(0, 5);
-  const dt = new Date(`${fechaISO}T${h}`);
-  const optsFecha = {
-    weekday: "long",
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-    timeZone: "America/Santiago",
-  };
-  const optsHora = {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-    timeZone: "America/Santiago",
-  };
+// Normaliza "HH:MM:SS" → "HH:MM", y si viene vacío devuelve "00:00"
+function toHHMM(hora) {
+  if (!hora || typeof hora !== "string") return "00:00";
+  // Acepta "HH:MM" o "HH:MM:SS"
+  const m = hora.match(/^(\d{2}):(\d{2})(?::\d{2})?$/);
+  if (!m) return "00:00";
+  return `${m[1]}:${m[2]}`;
+}
 
-  const fechaStr = cap(new Intl.DateTimeFormat("es-CL", optsFecha).format(dt));
-  const horaStr = new Intl.DateTimeFormat("es-CL", optsHora).format(dt);
-  return { fechaStr, horaStr };
+
+function formatearFechaHora(fechaISO, horaHHMM) {
+  try {
+    const fechaPart = (fechaISO || "").split("T")[0]; // por si viene con T
+    const fechaOk = /^\d{4}-\d{2}-\d{2}$/.test(fechaPart) ? fechaPart : null;
+
+    const hhmm = toHHMM(horaHHMM);
+    const [hh, mm] = hhmm.split(":").map((x) => parseInt(x, 10));
+
+    if (!fechaOk || Number.isNaN(hh) || Number.isNaN(mm)) {
+      // Fallback: ahora mismo
+      const now = new Date();
+      return {
+        fechaStr: cap(new Intl.DateTimeFormat("es-CL", {
+          weekday: "long", day: "2-digit", month: "long", year: "numeric",
+          timeZone: "America/Santiago",
+        }).format(now)),
+        horaStr: new Intl.DateTimeFormat("es-CL", {
+          hour: "2-digit", minute: "2-digit", hour12: false,
+          timeZone: "America/Santiago",
+        }).format(now),
+      };
+    }
+
+    const [y, m, d] = fechaOk.split("-").map((x) => parseInt(x, 10));
+    // Creamos fecha en UTC para evitar desfases y luego formateamos en TZ CL
+    const dt = new Date(Date.UTC(y, m - 1, d, hh, mm));
+
+    const fechaStr = cap(new Intl.DateTimeFormat("es-CL", {
+      weekday: "long", day: "2-digit", month: "long", year: "numeric",
+      timeZone: "America/Santiago",
+    }).format(dt));
+
+    const horaStr = new Intl.DateTimeFormat("es-CL", {
+      hour: "2-digit", minute: "2-digit", hour12: false,
+      timeZone: "America/Santiago",
+    }).format(dt);
+
+    return { fechaStr, horaStr };
+  } catch (e) {
+    // Fallback defensivo
+    const now = new Date();
+    return {
+      fechaStr: cap(new Intl.DateTimeFormat("es-CL", {
+        weekday: "long", day: "2-digit", month: "long", year: "numeric",
+        timeZone: "America/Santiago",
+      }).format(now)),
+      horaStr: new Intl.DateTimeFormat("es-CL", {
+        hour: "2-digit", minute: "2-digit", hour12: false,
+        timeZone: "America/Santiago",
+      }).format(now),
+    };
+  }
 }
 
 function linksMapa(direccion) {
@@ -114,7 +155,7 @@ async function crear(req, res) {
           det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Casa";
 
         // Fecha/Hora bonitas y enlaces de mapa
-        const hHM = (det.hora || "").slice(0, 5); // "HH:MM"
+        const hHM = toHHMM(det.hora);
         const { fechaStr, horaStr } = formatearFechaHora(det.fecha, hHM);
         const { google, waze } = linksMapa(det.direccion);
 
@@ -131,8 +172,8 @@ async function crear(req, res) {
         // Cliente
         if (det.cliente_correo) {
           await enviarCorreo({
-            to: det.cliente_correo,
-            subject: `Confirmación de visita – ${fechaStr} ${horaStr} hrs`,
+            to: cliente_correo,
+            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
             html,
           });
           console.log("[MAIL] Cliente OK:", det.cliente_correo);
