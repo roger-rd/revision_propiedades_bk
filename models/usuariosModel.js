@@ -73,18 +73,17 @@ async function updateProfile(id, { nombre, correo }) {
   return rows[0] || null;
 }
 /** Actualiza perfil extendido (nombre, correo, telefono, rol, id_empresa) */
-async function updateProfileFull(id, { nombre, correo, telefono, rol, id_empresa }) {
+async function updateProfileFull(id, { nombre, correo, rol, id_empresa }) {
   const { rows } = await pool.query(
     `UPDATE usuarios
      SET nombre = COALESCE($2, nombre),
          correo = COALESCE($3, correo),
-         telefono = COALESCE($4, telefono),
-         rol = COALESCE($5, rol),
-         id_empresa = COALESCE($6, id_empresa),
+         rol = COALESCE($4, rol),
+         id_empresa = COALESCE($5, id_empresa),
          actualizado_en = NOW()
      WHERE id = $1
      RETURNING id, nombre, correo, rol, id_empresa, actualizado_en`,
-    [id, nombre, correo, telefono, rol, id_empresa]
+    [id, nombre, correo, rol, id_empresa]
   );
   return rows[0] || null;
 }

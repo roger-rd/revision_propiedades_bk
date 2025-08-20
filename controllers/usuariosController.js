@@ -64,14 +64,13 @@ async function getUsuario(req, res) {
 async function updateUsuario(req, res) {
   try {
     const id = Number(req.params.id);
-    const { nombre, correo, telefono, rol, id_empresa, password } = req.body;
+    const { nombre, correo,rol, id_empresa, password } = req.body;
 
-    // 1) Actualizar perfil base (nombre/correo/telefono/rol/id_empresa si los usas)
+    // 1) Actualizar perfil base (nombre/correo/rol/id_empresa si los usas)
     //    Usa un método del model que soporte estos campos (abajo te doy uno).
     const updated = await UsuarioModel.updateProfileFull(id, {
       nombre,
       correo,
-      telefono,
       rol,
       id_empresa,
     });

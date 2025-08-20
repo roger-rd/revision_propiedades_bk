@@ -133,7 +133,7 @@ CREATE INDEX IF NOT EXISTS idx_agenda_fecha ON agenda (fecha);
 
 ALTER TABLE empresas ADD COLUMN correo TEXT;
 
-SELECT * FROM agenda;
+SELECT * FROM usuarios;
 
 -- tokens para reset (un solo uso, expira en 1h)
 CREATE TABLE IF NOT EXISTS password_resets (
@@ -170,3 +170,15 @@ SELECT * FROM google_api_usage ORDER BY id DESC LIMIT 20;
 ALTER TABLE usuarios
 ADD COLUMN IF NOT EXISTS reset_token TEXT,
 ADD COLUMN IF NOT EXISTS reset_expires TIMESTAMP;
+
+
+CREATE TABLE IF NOT EXISTS password_resets (
+  id SERIAL PRIMARY KEY,
+  id_usuario INTEGER NOT NULL REFERENCES usuarios(id) ON DELETE CASCADE,
+  token VARCHAR(128) NOT NULL UNIQUE,
+  requested_at TIMESTAMP NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMP NOT NULL,
+  used BOOLEAN NOT NULL DEFAULT FALSE
+);
+CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
+CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(id_usuario);
