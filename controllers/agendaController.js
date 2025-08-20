@@ -172,7 +172,7 @@ async function crear(req, res) {
         // Cliente
         if (det.cliente_correo) {
           await enviarCorreo({
-            to: cliente_correo,
+            to: det.cliente_correo,
             subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
             html,
           });
