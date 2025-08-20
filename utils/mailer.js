@@ -1,31 +1,34 @@
+// utils/mailer.js
 const nodemailer = require('nodemailer');
 
 const {
   SMTP_HOST = 'smtp.gmail.com',
-  SMTP_PORT = '465',
+  SMTP_PORT = '465',                 // '465' SSL o '587' TLS
   EMAIL_USER,
-  EMAIL_PASS,
-  EMAIL_FROM, // opcional; si no está, usamos EMAIL_USER
+  EMAIL_PASS,                        // App Password (16 chars, SIN espacios)
+  EMAIL_FROM,                        // opcional; si no, usamos EMAIL_USER
 } = process.env;
 
-// Transport compatible con Gmail (o cualquier SMTP)
+// Transport compatible con Gmail o cualquier SMTP
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: true, // true para 465, false para 587
+  host: SMTP_HOST,
+  port: Number(SMTP_PORT),
+  secure: SMTP_PORT === '465',       // true si 465, false si 587
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: EMAIL_USER,
+    pass: EMAIL_PASS,
   },
 });
 
+// Verificación (útil en logs de Render / local)
 transporter.verify(function (error, success) {
   if (error) {
-    console.error("❌ Error de conexión SMTP:", error);
+    console.error('❌ Error de conexión SMTP:', error);
   } else {
-    console.log("✅ Servidor listo para enviar correos");
+    console.log('✅ Servidor SMTP listo para enviar correos');
   }
 });
+
 /**
  * Envía correo HTML.
  * @param {Object} p
@@ -36,18 +39,15 @@ transporter.verify(function (error, success) {
  */
 async function enviarCorreo({ to, subject, html, from }) {
   const mailOptions = {
-    from: from || EMAIL_FROM || EMAIL_USER,
+    from: from || `"RDRP - Revisión de Casas" <${EMAIL_FROM || EMAIL_USER}>`,
     to,
     subject,
     html,
   };
 
   const info = await transporter.sendMail(mailOptions);
-  console.log('[MAIL] enviado:', { messageId: info.messageId, to });
+  console.log('[MAIL] enviado:', { messageId: info.messageId, to, subject });
   return info;
 }
 
-module.exports = { 
-  enviarCorreo, 
-  transporter 
-};
+module.exports = { enviarCorreo, transporter };
