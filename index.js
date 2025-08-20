@@ -50,7 +50,7 @@ app.use((req, res, next) => {
 });
 
 // 3) Preflight explícito (asegura headers en 204)
-app.options('*', (req, res) => {
+app.options('(.*)', (req, res) => {
   const origin = req.headers.origin;
   if (origin && ALLOWED_ORIGINS.includes(origin)) {
     res.setHeader('Access-Control-Allow-Origin', origin);
