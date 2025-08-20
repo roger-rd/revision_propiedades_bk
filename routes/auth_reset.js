@@ -1,19 +1,19 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const crypto = require('crypto');
-const bcrypt = require('bcryptjs');
-const pool = require('../config/bd_revision_casa');
-const {enviarCorreo} = require('../utils/mailer'); 
-const APP_URL = process.env.APP_URL || 'http://localhost:5173'; // URL del front
+const crypto = require("crypto");
+const bcrypt = require("bcryptjs");
+const pool = require("../config/bd_revision_casa");
+const { enviarCorreo } = require("../utils/mailer");
+const APP_URL = process.env.APP_URL || "http://localhost:5173"; // URL del front
 
 // POST /api/auth/reset/request  -> recibe { correo }
-router.post('/reset/request', async (req, res, next) => {
+router.post("/reset/request", async (req, res, next) => {
   try {
     const { correo } = req.body;
-    if (!correo) return res.status(400).json({ error: 'Correo requerido' });
+    if (!correo) return res.status(400).json({ error: "Correo requerido" });
 
     const { rows } = await pool.query(
-      'SELECT id, nombre FROM usuarios WHERE correo=$1 LIMIT 1',
+      "SELECT id, nombre FROM usuarios WHERE correo=$1 LIMIT 1",
       [correo]
     );
 
@@ -23,7 +23,7 @@ router.post('/reset/request', async (req, res, next) => {
     }
 
     const user = rows[0];
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 1000 * 60 * 30); // 30 min
 
     await pool.query(
@@ -36,7 +36,9 @@ router.post('/reset/request', async (req, res, next) => {
     const html = `
       <div style="font-family:Arial,sans-serif;max-width:520px">
         <h2>Reestablecer contraseña</h2>
-        <p>Hola ${user.nombre || ''}, solicitaste reestablecer tu contraseña.</p>
+        <p>Hola ${
+          user.nombre || ""
+        }, solicitaste reestablecer tu contraseña.</p>
         <p>Haz clic en el botón (o copia el enlace) y crea una nueva contraseña.<br>
         Este enlace expira en 30 minutos.</p>
         <p style="margin:24px 0">
@@ -48,7 +50,11 @@ router.post('/reset/request', async (req, res, next) => {
       </div>
     `;
 
-    await enviarCorreo(correo, 'Reestablece tu contraseña', html);
+    await enviarCorreo({
+        to: correo,
+          subject: 'Restablece tu contraseña',
+          html,
+        });
     res.json({ ok: true, sent: true });
   } catch (e) {
     next(e);
@@ -56,20 +62,22 @@ router.post('/reset/request', async (req, res, next) => {
 });
 
 // (opcional) GET /api/auth/reset/validate?token=...
-router.get('/reset/validate', async (req, res, next) => {
+router.get("/reset/validate", async (req, res, next) => {
   try {
     const { token } = req.query;
-    if (!token) return res.status(400).json({ error: 'Token requerido' });
+    if (!token) return res.status(400).json({ error: "Token requerido" });
 
     const { rows } = await pool.query(
       `SELECT id, expires_at, used FROM password_resets WHERE token=$1 LIMIT 1`,
       [token]
     );
-    if (rows.length === 0) return res.status(400).json({ error: 'Token inválido' });
+    if (rows.length === 0)
+      return res.status(400).json({ error: "Token inválido" });
 
     const pr = rows[0];
-    if (pr.used) return res.status(400).json({ error: 'Token usado' });
-    if (new Date(pr.expires_at) < new Date()) return res.status(400).json({ error: 'Token expirado' });
+    if (pr.used) return res.status(400).json({ error: "Token usado" });
+    if (new Date(pr.expires_at) < new Date())
+      return res.status(400).json({ error: "Token expirado" });
 
     res.json({ ok: true });
   } catch (e) {
@@ -78,11 +86,11 @@ router.get('/reset/validate', async (req, res, next) => {
 });
 
 // POST /api/auth/reset/confirm -> { token, nuevaContrasena }
-router.post('/reset/confirm', async (req, res, next) => {
+router.post("/reset/confirm", async (req, res, next) => {
   try {
     const { token, nuevaContrasena } = req.body;
     if (!token || !nuevaContrasena) {
-      return res.status(400).json({ error: 'Datos incompletos' });
+      return res.status(400).json({ error: "Datos incompletos" });
     }
 
     const { rows } = await pool.query(
@@ -92,15 +100,22 @@ router.post('/reset/confirm', async (req, res, next) => {
       [token]
     );
 
-    if (rows.length === 0) return res.status(400).json({ error: 'Token inválido' });
+    if (rows.length === 0)
+      return res.status(400).json({ error: "Token inválido" });
 
     const pr = rows[0];
-    if (pr.used) return res.status(400).json({ error: 'Token usado' });
-    if (new Date(pr.expires_at) < new Date()) return res.status(400).json({ error: 'Token expirado' });
+    if (pr.used) return res.status(400).json({ error: "Token usado" });
+    if (new Date(pr.expires_at) < new Date())
+      return res.status(400).json({ error: "Token expirado" });
 
     const hash = await bcrypt.hash(nuevaContrasena, 10);
-    await pool.query('UPDATE usuarios SET password=$1 WHERE id=$2', [hash, pr.id_usuario]);
-    await pool.query('UPDATE password_resets SET used=true WHERE id=$1', [pr.id]);
+    await pool.query("UPDATE usuarios SET password=$1 WHERE id=$2", [
+      hash,
+      pr.id_usuario,
+    ]);
+    await pool.query("UPDATE password_resets SET used=true WHERE id=$1", [
+      pr.id,
+    ]);
 
     res.json({ ok: true });
   } catch (e) {
