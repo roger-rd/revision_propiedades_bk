@@ -1,5 +1,6 @@
 const express = require('express');
 const axios = require('axios');
+// usa el util correcto:
 const { logGoogleUsage } = require('../utils/logGoogleUsage');
 const router = express.Router();
 
@@ -12,11 +13,7 @@ router.get('/', async (req, res) => {
   try {
     const resp = await axios.post(
       'https://places.googleapis.com/v1/places:autocomplete',
-      {
-        input,
-        languageCode: 'es-CL',
-        sessionToken, // vincula la sesión de billing
-      },
+      { input, languageCode: 'es-CL', sessionToken },
       {
         headers: {
           'Content-Type': 'application/json',
@@ -34,8 +31,8 @@ router.get('/', async (req, res) => {
       placePrediction: {
         placeId: s.placePrediction.placeId,
         structuredFormat: {
-          mainText: { text: s.placePrediction.structuredFormat?.mainText?.text || '' },
-          secondaryText: { text: s.placePrediction.structuredFormat?.secondaryText?.text || '' },
+          mainText:     { text: s.placePrediction.structuredFormat?.mainText?.text || '' },
+          secondaryText:{ text: s.placePrediction.structuredFormat?.secondaryText?.text || '' },
         },
       },
     }));
@@ -48,16 +45,6 @@ router.get('/', async (req, res) => {
         meta: { ip: req.ip, input_len: input.length }
       });
     }
-
-    res.json({ suggestions });
-
-    // LOG DE USO
-    await logGoogleUsage({
-      api_name: 'places_autocomplete',
-      endpoint: '/api/autocomplete',
-      units: 1,
-      meta: { ip: req.ip, input_len: input.length }
-    });
 
     res.json({ suggestions });
   } catch (err) {
