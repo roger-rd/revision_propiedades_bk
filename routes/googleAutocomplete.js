@@ -1,6 +1,6 @@
 const express = require('express');
 const axios = require('axios');
-const { logGoogleUsage } = require('../utils/googleUsage');
+const { logGoogleUsage } = require('../utils/logGoogleUsage');
 const router = express.Router();
 
 router.get('/', async (req, res) => {
@@ -39,6 +39,17 @@ router.get('/', async (req, res) => {
         },
       },
     }));
+
+    if (typeof logGoogleUsage === 'function') {
+      await logGoogleUsage({
+        api_name: 'places_autocomplete',
+        endpoint: '/api/autocomplete',
+        units: 1,
+        meta: { ip: req.ip, input_len: input.length }
+      });
+    }
+
+    res.json({ suggestions });
 
     // LOG DE USO
     await logGoogleUsage({
