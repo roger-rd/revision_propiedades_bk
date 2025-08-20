@@ -1,7 +1,8 @@
 const express = require('express');
 const axios = require('axios');
+const { logGoogleUsage } = require('../utils/googleUsage');
 // usa el util correcto:
-const { logGoogleUsage } = require('../utils/logGoogleUsage');
+
 const router = express.Router();
 
 router.get('/', async (req, res) => {
