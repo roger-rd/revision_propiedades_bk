@@ -11,14 +11,62 @@ app.get('/api/health', (req, res) => res.json({ ok: true, at: new Date().toISOSt
 
 
 /* ============ Configuración base ============ */
-app.use(
-  cors({
-    origin: process.env.FRONTEND_ORIGIN?.split(",") || ["http://localhost:5173"],
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+
+/* ============ CORS ============ */
+const envList =
+  (process.env.FRONTEND_ORIGINS || process.env.FRONTEND_ORIGIN || '')
+    .split(',')
+    .map(s => s.trim())
+    .filter(Boolean);
+
+// dev local
+const localList = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+const ALLOWED_ORIGINS = Array.from(new Set([...envList, ...localList]));
+
+const corsOptions = {
+  origin(origin, callback) {
+    if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+    return callback(new Error(`Not allowed by CORS: ${origin}`));
+  },
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+  credentials: true, // ponlo en false si NO usas cookies/sesión
+};
+
+// 1) Aplica CORS a todo (una sola vez)
+app.use(cors(corsOptions));
+
+// 2) Fuerza ACAO y credenciales cuando el origin es permitido
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    if (corsOptions.credentials) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    res.setHeader('Vary', 'Origin');
+  }
+  next();
+});
+
+// 3) Preflight explícito (asegura headers en 204)
+app.options('*', (req, res) => {
+  const origin = req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization');
+    if (corsOptions.credentials) {
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
+    }
+    return res.sendStatus(204);
+  }
+  return res.sendStatus(403);
+});
+
+
+
+
 app.use(express.json());
 app.use("/uploads", express.static("uploads"));
 
