@@ -92,6 +92,29 @@ async function obtenerCorreoEmpresa(id_empresa) {
   return rows[0]?.correo || null;
 }
 
+async function obtenerDetalleCita(id_empresa, id_cita) {
+  const { rows } = await pool.query(
+    `
+    SELECT
+      a.id,
+      a.direccion,
+      a.fecha,
+      a.hora,
+      c.nombre  AS cliente_nombre,
+      c.correo  AS cliente_correo,
+      e.nombre  AS empresa_nombre,
+      e.correo  AS empresa_correo
+    FROM agenda a
+    JOIN clientes  c ON c.id = a.id_cliente
+    JOIN empresas  e ON e.id = a.id_empresa
+    WHERE a.id_empresa = $1 AND a.id = $2
+    LIMIT 1
+    `,
+    [id_empresa, id_cita]
+  );
+  return rows[0] || null;
+}
+
 module.exports = {
   crearAgenda,
   listarPorEmpresa,
@@ -100,5 +123,6 @@ module.exports = {
   obtenerPorFecha,
   registrarRecordatorio,
   yaEnviado,
-  obtenerCorreoEmpresa
+  obtenerCorreoEmpresa,
+  obtenerDetalleCita
 };
