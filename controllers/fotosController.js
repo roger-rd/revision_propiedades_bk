@@ -62,8 +62,40 @@ async function subirFotoDesdeArchivo(req, res) {
   }
 }
 
+async function eliminarFotoPorUrl(req, res) {
+  try {
+    const url_foto = req.body?.url_foto;
+    if (!url_foto) return res.status(400).json({ error: 'Falta url_foto' });
+
+    const foto = await FotoModel.obtenerFotoPorUrl(url_foto);
+    if (!foto) {
+      // No estaba en BD; respondemos OK para no trabar la UI
+      return res.json({ message: '✅ Foto (por URL) ya no existía en BD', url_foto });
+    }
+
+    if (foto.id_public && canDeleteCLD) {
+      try {
+        const resp = await cloudinary.uploader.destroy(foto.id_public, {
+          invalidate: true,
+          resource_type: 'image',
+        });
+        console.log('Cloudinary destroy (by url) =>', resp);
+      } catch (e) {
+        console.warn('Cloudinary destroy ERROR (by url, continuo):', e?.message || e);
+      }
+    }
+
+    await FotoModel.eliminarFotoPorUrl(url_foto);
+    return res.json({ message: '✅ Foto eliminada (por URL)', url_foto });
+  } catch (e) {
+    console.error('Error eliminarFotoPorUrl:', e);
+    return res.status(500).json({ error: 'Error al eliminar foto' });
+  }
+}
+
 module.exports = {
   subirFotoObservacion,
   eliminarFotoObservacion,
-  subirFotoDesdeArchivo
+  subirFotoDesdeArchivo,
+  eliminarFotoPorUrl
 };

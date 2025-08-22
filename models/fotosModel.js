@@ -19,9 +19,22 @@ async function eliminarFotoPorId(id) {
   await pool.query('DELETE FROM fotos_observacion WHERE id = $1', [id]);
 }
 
+async function obtenerFotoPorUrl(url) {
+  const { rows } = await pool.query(
+    'SELECT id, id_public FROM fotos_observacion WHERE url_foto = $1 LIMIT 1',
+    [url]
+  );
+  return rows[0];
+}
+
+async function eliminarFotoPorUrl(url) {
+  await pool.query('DELETE FROM fotos_observacion WHERE url_foto = $1', [url]);
+}
 
 module.exports = {
   insertarFoto,
-  obtenerFotoPorId, 
-  eliminarFotoPorId
+  obtenerFotoPorId,
+  eliminarFotoPorId,
+  obtenerFotoPorUrl,
+  eliminarFotoPorUrl
 };
