@@ -1,9 +1,6 @@
 const FotoModel = require('../models/fotosModel');
 const cloudinary = require('../config/cloudinary');
 
-// Helper: lee el flag desde ENV cada vez (por si cambias en Render)
-const isCloudinaryDeleteEnabled = () =>
-  String(process.env.CLOUDINARY_DELETE_ENABLED ?? 'true').toLowerCase() !== 'false';
 
 async function subirFotoObservacion(req, res) {
     
@@ -77,7 +74,7 @@ async function eliminarFotoPorUrl(req, res) {
       return res.json({ message: '✅ Foto (por URL) ya no existía en BD', url_foto });
     }
 
-    if (foto.id_public && isCloudinaryDeleteEnabled) {
+    if (foto.id_public && canDeleteCLD) {
       try {
         const resp = await cloudinary.uploader.destroy(foto.id_public, {
           invalidate: true,
@@ -96,8 +93,6 @@ async function eliminarFotoPorUrl(req, res) {
     return res.status(500).json({ error: 'Error al eliminar foto' });
   }
 }
-
-
 
 module.exports = {
   subirFotoObservacion,
