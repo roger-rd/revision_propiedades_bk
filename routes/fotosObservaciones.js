@@ -3,9 +3,12 @@ const router = express.Router();
 const fotoController = require('../controllers/fotosController');
 const { uploadObservaciones } = require('../middlewares/uploadMiddleware');
 
+
 router.post('/', fotoController.subirFotoObservacion)
+router.delete('/:id', fotoController.eliminarFotoObservacion);
 
 // Ruta protegida por token/session y que sube directamente a Cloudinary
 router.post('/archivo', uploadObservaciones.single('file'), fotoController.subirFotoDesdeArchivo);
+
 
 module.exports = router;
