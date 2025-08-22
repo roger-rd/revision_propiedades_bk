@@ -13,24 +13,50 @@ async function subirFotoObservacion(req, res) {
   }
 }
 
+// async function eliminarFotoObservacion(req, res) {
+//   const { id } = req.params;
+
+//   try {
+//     const foto = await FotoModel.obtenerFotoPorId(id);
+//     if (!foto) return res.status(404).json({ error: "Foto no encontrada" });
+
+//     // Eliminar de Cloudinary
+//     if (foto.id_public) {
+//       await cloudinary.uploader.destroy(foto.id_public);
+//     }
+
+//     // Eliminar de base de datos
+//     await FotoModel.eliminarFotoPorId(id);
+//     res.json({ message: "✅ Foto eliminada correctamente" });
+//   } catch (error) {
+//     console.error("Error al eliminar foto:", error.message);
+//     res.status(500).json({ error: "Error al eliminar foto" });
+//   }
+// }
+
+// controllers/fotosController.js
+
 async function eliminarFotoObservacion(req, res) {
   const { id } = req.params;
-
   try {
     const foto = await FotoModel.obtenerFotoPorId(id);
-    if (!foto) return res.status(404).json({ error: "Foto no encontrada" });
+    if (!foto) return res.status(404).json({ error: 'Foto no encontrada' });
 
-    // Eliminar de Cloudinary
-    if (foto.id_public) {
-      await cloudinary.uploader.destroy(foto.id_public);
+    const canDelete = String(process.env.CLOUDINARY_DELETE_ENABLED ?? 'true').toLowerCase() !== 'false';
+
+    if (foto.id_public && canDelete) {
+      const resp = await cloudinary.uploader.destroy(foto.id_public, {
+        invalidate: true,
+        resource_type: 'image',
+      });
+      console.log('Cloudinary destroy =>', resp); // debería traer { result: 'ok' } o 'not found'
     }
 
-    // Eliminar de base de datos
     await FotoModel.eliminarFotoPorId(id);
-    res.json({ message: "✅ Foto eliminada correctamente" });
-  } catch (error) {
-    console.error("Error al eliminar foto:", error.message);
-    res.status(500).json({ error: "Error al eliminar foto" });
+    res.json({ message: '✅ Foto eliminada correctamente' });
+  } catch (e) {
+    console.error('Error al eliminar foto:', e);
+    res.status(500).json({ error: 'Error al eliminar foto' });
   }
 }
 
