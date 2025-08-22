@@ -1,5 +1,5 @@
 const FotoModel = require('../models/fotosModel');
-const cloudinary = require('../config/cloudinary');
+const { v2: cloudinary } = require('cloudinary');
 
 /* === Helpers === */
 
