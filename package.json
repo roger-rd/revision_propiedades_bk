@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
 "scripts": {
-    "dev": "nodemon index.dev.js",
+    "dev": "nodemon index.js",
     "start": "node index.js",
     "start:jobs": "ENABLE_JOBS=true node index.js",
     "dev:jobs": "ENABLE_JOBS=true nodemon index.dev.js"

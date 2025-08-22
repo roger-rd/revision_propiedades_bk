@@ -10,6 +10,22 @@ const app = express();
 app.get('/api/health', (req, res) => res.json({ ok: true, at: new Date().toISOString() }));
 
 
+// ====== Health con info útil
+const { v2: cld } = require('cloudinary');
+const url = require('url');
+app.get('/api/health', (req, res) => {
+  const dbHost = process.env.DATABASE_URL
+    ? new url.URL(process.env.DATABASE_URL).hostname
+    : process.env.DB_HOST;
+  res.json({
+    ok: true,
+    at: new Date().toISOString(),
+    db_host: dbHost,
+    cloud: cld.config().cloud_name
+  });
+});
+
+
 /* ============ Configuración base ============ */
 
 /* ============ CORS ============ */

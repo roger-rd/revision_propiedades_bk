@@ -1,24 +1,97 @@
+// controllers/fotosController.js
 const FotoModel = require('../models/fotosModel');
 const cloudinary = require('../config/cloudinary');
 
-// Helper: lee el flag desde ENV cada vez (por si cambias en Render)
+// --- Helpers ---
+
+// Lee el flag cada vez (por si lo cambias en Render)
 const isCloudinaryDeleteEnabled = () =>
   String(process.env.CLOUDINARY_DELETE_ENABLED ?? 'true').toLowerCase() !== 'false';
 
-async function subirFotoObservacion(req, res) {
-    
+// Deriva public_id desde la secure_url (soporta vNNN y transformaciones previas)
+function publicIdFromUrl(url) {
+  try {
+    const u = new URL(url);
+    const p = u.pathname; // /image/upload/.../vNNN/folder/file.ext
+    const idx = p.indexOf('/upload/');
+    if (idx === -1) return null;
+
+    const rest = p.slice(idx + '/upload/'.length);
+    const segs = rest.split('/').filter(Boolean);
+
+    // quitar transformaciones y versión vNNN
+    let versionIdx = -1;
+    for (let i = 0; i < segs.length; i++) if (/^v\d+$/.test(segs[i])) versionIdx = i;
+    const after = versionIdx >= 0 ? segs.slice(versionIdx + 1) : segs;
+    if (!after.length) return null;
+
+    const file = after.pop(); // último: nombre.ext
+    if (!file) return null;
+    const nameNoExt = file.replace(/\.[^.]+$/, '');
+    const folder = after.join('/');
+
+    return folder ? `${folder}/${nameNoExt}` : nameNoExt;
+  } catch {
+    return null;
+  }
+}
+
+// Genera candidatos con/sin prefijo "revision-casa/"
+function makeCandidates({ fromDb, fromUrl }) {
+  const set = new Set();
+  const add = (v) => { if (v && typeof v === 'string') set.add(v); };
+
+  add(fromDb);
+  add(fromUrl);
+
+  const variants = (pid) => {
+    if (!pid) return;
+    add(pid);
+    // toggles típicos con el root "revision-casa/"
+    if (!pid.startsWith('revision-casa/')) add(`revision-casa/${pid}`);
+    if (pid.startsWith('revision-casa/')) add(pid.replace(/^revision-casa\//, ''));
+  };
+
+  variants(fromDb);
+  variants(fromUrl);
+
+  return Array.from(set);
+}
+
+// Intenta destruir el primer public_id válido. No rompe si falla.
+async function destroyFirstMatch(publicIds) {
+  for (const pid of publicIds) {
     try {
-        const { id_observacion, url_foto, id_public,id_empresa } = req.body;
-        const nuevaFoto = await FotoModel.insertarFoto(id_observacion, url_foto, id_public,id_empresa);
-        res.status(201).json(nuevaFoto);
+      const resp = await cloudinary.uploader.destroy(pid, {
+        resource_type: 'image',
+        invalidate: true,
+        // type: 'upload', // si usas un delivery type distinto, ajústalo aquí
+      });
+      console.log('TRY destroy =>', { pid, result: resp?.result });
+      if (resp?.result === 'ok' || resp?.result === 'deleted') return true;
+      // si fue 'not found', continúa con el siguiente candidate
+    } catch (e) {
+      console.warn('Destroy error =>', pid, e?.message || e);
+      // continúa con el siguiente
+    }
+  }
+  return false;
+}
+
+// --- Subidas ---
+
+async function subirFotoObservacion(req, res) {
+  try {
+    const { id_observacion, url_foto, id_public, id_empresa } = req.body;
+    const nuevaFoto = await FotoModel.insertarFoto(id_observacion, url_foto, id_public, id_empresa);
+    res.status(201).json(nuevaFoto);
   } catch (error) {
-    console.error("Error al subir foto:", error.message);
+    console.error('Error al subir foto:', error.message);
     res.status(500).json({ error: 'Error al subir foto' });
   }
 }
 
-
-
+// Subida vía multer-storage-cloudinary: req.file.path (secure_url), req.file.filename (public_id completo)
 async function subirFotoDesdeArchivo(req, res) {
   try {
     const { id_observacion } = req.body;
@@ -28,8 +101,8 @@ async function subirFotoDesdeArchivo(req, res) {
       return res.status(400).json({ error: 'No se recibió ninguna imagen' });
     }
 
-    const url_foto = req.file.path;
-    const id_public = req.file.filename; // Cloudinary lo devuelve como filename
+    const url_foto = req.file.path;      // secure_url
+    const id_public = req.file.filename; // public_id COMPLETO (con carpeta)
 
     const nuevaFoto = await FotoModel.insertarFoto(id_observacion, url_foto, id_public, id_empresa);
     res.status(201).json(nuevaFoto);
@@ -39,24 +112,27 @@ async function subirFotoDesdeArchivo(req, res) {
   }
 }
 
+// --- Borrados ---
+
 // DELETE /api/fotos-observacion/:id
 async function eliminarFotoObservacion(req, res) {
   const { id } = req.params;
   try {
-    const foto = await FotoModel.obtenerFotoPorId(id);
+    const foto = await FotoModel.obtenerFotoPorId(id); // ← asegúrate de devolver id, id_public y url_foto
     if (!foto) return res.status(404).json({ error: 'Foto no encontrada' });
 
-    if (foto.id_public && isCloudinaryDeleteEnabled()) {
-      try {
-        const resp = await cloudinary.uploader.destroy(foto.id_public, {
-          invalidate: true,
-          resource_type: 'image',
-        });
-        console.log('Cloudinary destroy (by id) =>', resp);
-      } catch (e) {
-        // NO interrumpas el flujo si Cloudinary falla
-        console.warn('Cloudinary destroy ERROR (by id, continuo):', e?.message || e);
-      }
+    // Log de diagnóstico mínimo
+    const cfg = cloudinary.config();
+    console.log('CLD cfg:', { cloud: cfg.cloud_name });
+    console.log('DELETE by id =>', { id_public_db: foto.id_public, url_foto_db: foto.url_foto });
+
+    if (isCloudinaryDeleteEnabled()) {
+      const candidates = makeCandidates({
+        fromDb: foto.id_public,
+        fromUrl: publicIdFromUrl(foto.url_foto),
+      });
+      console.log('CANDIDATES =>', candidates);
+      await destroyFirstMatch(candidates);
     }
 
     await FotoModel.eliminarFotoPorId(id);
@@ -73,27 +149,28 @@ async function eliminarFotoPorUrl(req, res) {
     const url_foto = req.body?.url_foto;
     if (!url_foto) return res.status(400).json({ error: 'Falta url_foto' });
 
-    const foto = await FotoModel.obtenerFotoPorUrl(url_foto);
+    const fila = await FotoModel.obtenerFotoPorUrl?.(url_foto); // si implementaste este método
+    const cfg = cloudinary.config();
+    console.log('CLD cfg:', { cloud: cfg.cloud_name });
+    console.log('DELETE by url =>', { url_foto });
 
-    if (!foto) {
-      // No estaba en BD; responde OK para no trabar la UI
-      return res.json({ message: '✅ Foto (por URL) ya no existía en BD', url_foto });
+    if (isCloudinaryDeleteEnabled()) {
+      const fromUrl = publicIdFromUrl(url_foto);
+      const candidates = makeCandidates({
+        fromDb: fila?.id_public,
+        fromUrl,
+      });
+      console.log('CANDIDATES(by-url) =>', candidates);
+      await destroyFirstMatch(candidates);
     }
 
-    if (foto.id_public && isCloudinaryDeleteEnabled()) {
-      try {
-        const resp = await cloudinary.uploader.destroy(foto.id_public, {
-          invalidate: true,
-          resource_type: 'image',
-        });
-        console.log('Cloudinary destroy (by url) =>', resp);
-      } catch (e) {
-        console.warn('Cloudinary destroy ERROR (by url, continuo):', e?.message || e);
-      }
+    if (fila) {
+      await FotoModel.eliminarFotoPorUrl(url_foto);
+      return res.json({ message: '✅ Foto eliminada (BD + Cloudinary)', via: 'by-url', url_foto });
+    } else {
+      // No había fila, pero intentamos Cloudinary igual
+      return res.json({ message: '✅ Foto eliminada (solo Cloudinary)', via: 'by-url', url_foto });
     }
-
-    await FotoModel.eliminarFotoPorUrl(url_foto);
-    return res.json({ message: '✅ Foto eliminada (por URL)', url_foto });
   } catch (e) {
     console.error('Error eliminarFotoPorUrl:', e);
     return res.status(500).json({ error: 'Error al eliminar foto' });
@@ -102,7 +179,7 @@ async function eliminarFotoPorUrl(req, res) {
 
 module.exports = {
   subirFotoObservacion,
-  eliminarFotoObservacion,
   subirFotoDesdeArchivo,
-  eliminarFotoPorUrl
+  eliminarFotoObservacion,
+  eliminarFotoPorUrl,
 };
