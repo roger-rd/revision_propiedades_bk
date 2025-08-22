@@ -111,11 +111,11 @@ async function subirFotoDesdeArchivo(req, res) {
 async function eliminarFotoObservacion(req, res) {
   const { id } = req.params;
   try {
-    const foto = await FotoModel.obtenerFotoPorId(id); // SELECT * -> incluye url_foto
+    const foto = await FotoModel.obtenerFotoPorId(id); // incluye url_foto
     if (!foto) return res.status(404).json({ error: 'Foto no encontrada' });
 
-    const cfg = cloudinary.config();
-    console.log('CLD cfg:', { cloud: cfg.cloud_name });
+    // Logs de diagnóstico (sin llamar cloudinary.config())
+    console.log('CLD cloud:', process.env.CLOUDINARY_NAME);
     console.log('DELETE by id =>', { id_public_db: foto.id_public, url_foto_db: foto.url_foto });
 
     if (isCloudinaryDeleteEnabled()) {
@@ -142,9 +142,7 @@ async function eliminarFotoPorUrl(req, res) {
     if (!url_foto) return res.status(400).json({ error: 'Falta url_foto' });
 
     const fila = await FotoModel.obtenerFotoPorUrl(url_foto); // id, id_public
-
-    const cfg = cloudinary.config();
-    console.log('CLD cfg:', { cloud: cfg.cloud_name });
+    console.log('CLD cloud:', process.env.CLOUDINARY_NAME);
     console.log('DELETE by url =>', { url_foto });
 
     if (isCloudinaryDeleteEnabled()) {
