@@ -10,7 +10,6 @@ async function hashPasswords() {
     for (let user of rows) {
       // Evitar hashear si ya está hasheada (comienza con $2a$ o $2b$)
       if (user.password.startsWith('$2a$') || user.password.startsWith('$2b$')) {
-        console.log(`Usuario ${user.id} ya tiene hash, saltando...`);
         continue;
       }
 
@@ -23,10 +22,9 @@ async function hashPasswords() {
         [hash, user.id]
       );
 
-      console.log(`✅ Contraseña de usuario ${user.id} hasheada`);
+
     }
 
-    console.log('🎯 Migración completada');
     process.exit();
   } catch (err) {
     console.error('❌ Error en migración:', err);

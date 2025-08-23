@@ -37,7 +37,6 @@ router.get('/:id/generar', async (req, res) => {
   const idSolicitud = req.params.id;
   const template = (req.query.template || '').toLowerCase(); // "gold" o ""
 
-  console.log('[INF] Generar informe →', { idSolicitud, template });
 
   try {
     // 1) Solicitud completa

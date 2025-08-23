@@ -31,7 +31,6 @@ async function enviarCorreo({ to, subject, html, from }) {
     subject,
     html,
   });
-  console.log('[MAIL] enviado:', { messageId: info.messageId, to, subject });
   return info;
 }
 
