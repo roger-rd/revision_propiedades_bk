@@ -182,3 +182,9 @@ CREATE TABLE IF NOT EXISTS password_resets (
 );
 CREATE INDEX IF NOT EXISTS idx_password_resets_token ON password_resets(token);
 CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(id_usuario);
+
+SELECT id, id_observacion FROM fotos_observacion WHERE id_public IS NULL OR id_public = '';
+
+SELECT * from fotos_observacion;
+SELECT * from solicitudes;
+SELECT * from espacios;

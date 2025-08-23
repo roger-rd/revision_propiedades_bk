@@ -1,6 +1,7 @@
 // controllers/agendaController.js
 const AgendaModel = require("../models/agendaModel");
 const { enviarCorreo } = require("../utils/mailer");
+const pool = require("../config/bd_revision_casa"); 
 
 // ---------- Helpers ----------
 function cap(s) {
@@ -143,60 +144,123 @@ async function crear(req, res) {
     res.status(201).json(cita);
 
     // === correos en segundo plano ===
-    (async () => {
+   (async () => {
+  try {
+    const det = await AgendaModel.obtenerDetalleCita(id_empresa, cita.id);
+    if (!det) {
+      console.warn("[MAIL] No encontré detalle de la cita recién creada:", cita.id);
+      return;
+    }
+
+    const empresa_nombre =
+      det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Casa";
+
+    // Fecha/Hora bonitas y enlaces de mapa
+    const hHM = toHHMM(det.hora);
+    const { fechaStr, horaStr } = formatearFechaHora(det.fecha, hHM);
+    const { google, waze } = linksMapa(det.direccion);
+
+    const html = htmlConfirmacion({
+      empresa_nombre,
+      cliente_nombre: det.cliente_nombre || "Cliente",
+      direccion: det.direccion,
+      fechaStr,
+      horaStr,
+      googleUrl: google,
+      wazeUrl: waze,
+    });
+
+    // ========== CLIENTE ==========
+    if (det.cliente_correo) {
+      await enviarCorreo({
+        to: det.cliente_correo,
+        subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
+        html,
+      });
+      console.log("[MAIL] Cliente OK:", det.cliente_correo);
+    } else {
+      console.warn("[MAIL] Cliente sin correo, no se envía confirmación.");
+    }
+
+    // ========== USUARIO LOGUEADO ==========
+    // Intentamos en este orden:
+    // 1) Si obtenerDetalleCita ya trae el email del usuario (ej: det.usuario_correo)
+    // 2) Si el JWT incluye email (req.usuario.email)
+    // 3) Consultamos a la BD por el id_usuario del token
+    let correoUsuario =
+      det.usuario_correo ||
+      req.usuario?.email ||
+      null;
+
+    if (!correoUsuario && req.usuario?.id_usuario) {
       try {
-        const det = await AgendaModel.obtenerDetalleCita(id_empresa, cita.id);
-        if (!det) {
-          console.warn("[MAIL] No encontré detalle de la cita recién creada:", cita.id);
-          return;
+        const { rows } = await pool.query(
+          `SELECT email, nombre
+             FROM usuarios
+            WHERE id = $1 AND id_empresa = $2
+            LIMIT 1;`,
+          [req.usuario.id_usuario, det.id_empresa || id_empresa]
+        );
+        if (rows[0]?.email) {
+          correoUsuario = rows[0].email;
+          // Si quieres personalizar saludo:
+          det.usuario_nombre = rows[0].nombre || det.usuario_nombre;
         }
-
-        const empresa_nombre =
-          det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Casa";
-
-        // Fecha/Hora bonitas y enlaces de mapa
-        const hHM = toHHMM(det.hora);
-        const { fechaStr, horaStr } = formatearFechaHora(det.fecha, hHM);
-        const { google, waze } = linksMapa(det.direccion);
-
-        const html = htmlConfirmacion({
-          empresa_nombre,
-          cliente_nombre: det.cliente_nombre || "Cliente",
-          direccion: det.direccion,
-          fechaStr,
-          horaStr,
-          googleUrl: google,
-          wazeUrl: waze,
-        });
-
-        // Cliente
-        if (det.cliente_correo) {
-          await enviarCorreo({
-            to: det.cliente_correo,
-            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
-            html,
-          });
-          console.log("[MAIL] Cliente OK:", det.cliente_correo);
-        } else {
-          console.warn("[MAIL] Cliente sin correo, no se envía confirmación.");
-        }
-
-        // Empresa (BD → fallback ENV)
-        const correoEmpresa = det.empresa_correo || process.env.EMPRESA_NOTIF;
-        if (correoEmpresa) {
-          await enviarCorreo({
-            to: correoEmpresa,
-            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
-            html,
-          });
-          console.log("[MAIL] Empresa OK:", correoEmpresa);
-        } else {
-          console.warn("[MAIL] Empresa sin correo (BD/ENV), no se envía notificación.");
-        }
-      } catch (e) {
-        console.error("Fallo al enviar correos (no afecta al cliente):", e);
+      } catch (qErr) {
+        console.warn("[MAIL] No pude obtener correo del usuario por BD:", qErr.message);
       }
-    })();
+    }
+
+    if (correoUsuario) {
+      // Puedes reutilizar 'html' o crear una variante para el usuario:
+      const htmlUsuario = `
+        <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;line-height:1.45">
+          <h2 style="margin:0 0 12px">${empresa_nombre} – Nueva visita asignada</h2>
+          <p style="margin:0 0 8px">Hola <b>${det.usuario_nombre || "Usuario"}</b>, tienes una nueva visita:</p>
+          <ul style="padding-left:18px;margin:8px 0 14px">
+            <li><b>Fecha:</b> ${fechaStr}</li>
+            <li><b>Hora:</b> ${horaStr} hrs</li>
+            <li><b>Dirección:</b> ${det.direccion}</li>
+            <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${det.cliente_correo ? "(" + det.cliente_correo + ")" : ""}</li>
+          </ul>
+          <div style="margin:14px 0">
+            <a href="${google}" target="_blank" rel="noopener"
+               style="display:inline-block;padding:10px 14px;margin-right:8px;border-radius:8px;background:#1a73e8;color:#fff;text-decoration:none">
+              Abrir en Google Maps
+            </a>
+            <a href="${waze}" target="_blank" rel="noopener"
+               style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff;text-decoration:none">
+              Abrir en Waze
+            </a>
+          </div>
+        </div>`;
+
+      await enviarCorreo({
+        to: correoUsuario,                   // <-- AQUÍ VA EL CORREO DEL USUARIO REAL
+        subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`,
+        html: htmlUsuario,
+      });
+      console.log("[MAIL] Usuario OK:", correoUsuario);
+    } else {
+      console.warn("[MAIL] No logré determinar correo del usuario logueado.");
+    }
+
+    // ========== EMPRESA (opcional, como lo tienes) ==========
+    const correoEmpresa = det.empresa_correo || process.env.EMPRESA_NOTIF;
+    if (correoEmpresa) {
+      await enviarCorreo({
+        to: correoEmpresa,
+        subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
+        html,
+      });
+      console.log("[MAIL] Empresa OK:", correoEmpresa);
+    } else {
+      console.warn("[MAIL] Empresa sin correo (BD/ENV), no se envía notificación.");
+    }
+  } catch (e) {
+    console.error("Fallo al enviar correos (no afecta al cliente):", e);
+  }
+})();
     // ================================
   } catch (e) {
     console.error("Error al crear agenda:", e);
