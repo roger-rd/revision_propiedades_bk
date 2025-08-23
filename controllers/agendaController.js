@@ -27,12 +27,19 @@ function formatearFechaHora(fechaISO, horaHHMM) {
     if (!fechaOk || Number.isNaN(hh) || Number.isNaN(mm)) {
       const now = new Date();
       return {
-        fechaStr: cap(new Intl.DateTimeFormat("es-CL", {
-          weekday: "long", day: "2-digit", month: "long", year: "numeric",
-          timeZone: "America/Santiago",
-        }).format(now)),
+        fechaStr: cap(
+          new Intl.DateTimeFormat("es-CL", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+            year: "numeric",
+            timeZone: "America/Santiago",
+          }).format(now)
+        ),
         horaStr: new Intl.DateTimeFormat("es-CL", {
-          hour: "2-digit", minute: "2-digit", hour12: false,
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
           timeZone: "America/Santiago",
         }).format(now),
       };
@@ -41,13 +48,20 @@ function formatearFechaHora(fechaISO, horaHHMM) {
     const [y, m, d] = fechaOk.split("-").map((x) => parseInt(x, 10));
     const dt = new Date(Date.UTC(y, m - 1, d, hh, mm));
 
-    const fechaStr = cap(new Intl.DateTimeFormat("es-CL", {
-      weekday: "long", day: "2-digit", month: "long", year: "numeric",
-      timeZone: "America/Santiago",
-    }).format(dt));
+    const fechaStr = cap(
+      new Intl.DateTimeFormat("es-CL", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+        timeZone: "America/Santiago",
+      }).format(dt)
+    );
 
     const horaStr = new Intl.DateTimeFormat("es-CL", {
-      hour: "2-digit", minute: "2-digit", hour12: false,
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
       timeZone: "America/Santiago",
     }).format(dt);
 
@@ -55,12 +69,19 @@ function formatearFechaHora(fechaISO, horaHHMM) {
   } catch {
     const now = new Date();
     return {
-      fechaStr: cap(new Intl.DateTimeFormat("es-CL", {
-        weekday: "long", day: "2-digit", month: "long", year: "numeric",
-        timeZone: "America/Santiago",
-      }).format(now)),
+      fechaStr: cap(
+        new Intl.DateTimeFormat("es-CL", {
+          weekday: "long",
+          day: "2-digit",
+          month: "long",
+          year: "numeric",
+          timeZone: "America/Santiago",
+        }).format(now)
+      ),
       horaStr: new Intl.DateTimeFormat("es-CL", {
-        hour: "2-digit", minute: "2-digit", hour12: false,
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
         timeZone: "America/Santiago",
       }).format(now),
     };
@@ -112,17 +133,25 @@ function htmlConfirmacion({
 
 async function crear(req, res) {
   try {
-    const { id_empresa, id_cliente, direccion, fecha, hora, observacion } = req.body;
+    const { id_empresa, id_cliente, direccion, fecha, hora, observacion } =
+      req.body;
     if (!id_empresa || !id_cliente || !direccion || !fecha || !hora) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
 
     // anti-solape
-    const solapa = await AgendaModel.existeSolape({ id_empresa, id_cliente, fecha, hora });
+    const solapa = await AgendaModel.existeSolape({
+      id_empresa,
+      id_cliente,
+      fecha,
+      hora,
+    });
     if (solapa) {
       return res
         .status(409)
-        .json({ error: "Ya existe una cita para este cliente en esa fecha y hora." });
+        .json({
+          error: "Ya existe una cita para este cliente en esa fecha y hora.",
+        });
     }
 
     // crear
@@ -143,7 +172,10 @@ async function crear(req, res) {
       try {
         const det = await AgendaModel.obtenerDetalleCita(id_empresa, cita.id);
         if (!det) {
-          console.warn("[MAIL] No encontré detalle de la cita recién creada:", cita.id);
+          console.warn(
+            "[MAIL] No encontré detalle de la cita recién creada:",
+            cita.id
+          );
           return;
         }
 
@@ -179,59 +211,89 @@ async function crear(req, res) {
 
         // ========== USUARIO (creador/logueado) ==========
         let correoUsuario =
-          det.usuario_correo ||
-          req.usuario?.correo ||
+          det?.usuario_correo || // si tu detalle ya lo trae
+          req?.usuario?.email || // si el JWT trae email
+          req?.usuario?.correo || // si el JWT trae correo
           null;
 
-        if (!correoUsuario && req.usuario?.id_usuario) {
-          try {
+        try {
+          // Logs temporales (borra luego de probar)
+          console.log("[MAIL][USR] det.usuario_correo:", det?.usuario_correo);
+          console.log("[MAIL][USR] req.usuario:", req?.usuario);
+
+          const idEmpresaCtx = det?.id_empresa || id_empresa || null;
+          const idUsuario =
+            (req?.usuario?.id_usuario ?? req?.usuario?.id) || null;
+          console.log(
+            "[MAIL][USR] idEmpresaCtx:",
+            idEmpresaCtx,
+            "idUsuario:",
+            idUsuario
+          );
+
+          // Si aún no tenemos correo, resolvemos por BD
+          if (!correoUsuario && idUsuario) {
             const { rows } = await pool.query(
-              `SELECT correo, nombre
-                 FROM usuarios
-                WHERE id = $1 AND id_empresa = $2
-                LIMIT 1;`,
-              [req.usuario.id_usuario, det.id_empresa || id_empresa]
+              `SELECT 
+         COALESCE(email, correo)   AS email,   -- tolera 'email' o 'correo'
+         COALESCE(nombre, nombres) AS nombre   -- tolera 'nombre' o 'nombres'
+       FROM usuarios
+       WHERE id = $1
+         AND ($2::INT IS NULL OR id_empresa = $2)
+       LIMIT 1;`,
+              [idUsuario, idEmpresaCtx]
             );
-            if (rows[0]?.correo) {
-              correoUsuario = rows[0].correo;
+            if (rows[0]?.email) {
+              correoUsuario = rows[0].email;
               det.usuario_nombre = rows[0].nombre || det.usuario_nombre;
             }
-          } catch (qErr) {
-            console.warn("[MAIL] No pude obtener correo del usuario por BD:", qErr.message);
           }
+        } catch (qErr) {
+          console.warn(
+            "[MAIL][USR] Error buscando correo en BD:",
+            qErr.message
+          );
         }
+
+        console.log("[MAIL][USR] destinatario final:", correoUsuario);
 
         if (correoUsuario) {
           const htmlUsuario = `
-            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;line-height:1.45">
-              <h2 style="margin:0 0 12px">${empresa_nombre} – Nueva visita asignada</h2>
-              <p style="margin:0 0 8px">Hola <b>${det.usuario_nombre || "Usuario"}</b>, tienes una nueva visita:</p>
-              <ul style="padding-left:18px;margin:8px 0 14px">
-                <li><b>Fecha:</b> ${fechaStr}</li>
-                <li><b>Hora:</b> ${horaStr} hrs</li>
-                <li><b>Dirección:</b> ${det.direccion}</li>
-                <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${det.cliente_correo ? "(" + det.cliente_correo + ")" : ""}</li>
-              </ul>
-              <div style="margin:14px 0">
-                <a href="${google}" target="_blank" rel="noopener"
-                   style="display:inline-block;padding:10px 14px;margin-right:8px;border-radius:8px;background:#1a73e8;color:#fff;text-decoration:none">
-                  Abrir en Google Maps
-                </a>
-                <a href="${waze}" target="_blank" rel="noopener"
-                   style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff;text-decoration:none">
-                  Abrir en Waze
-                </a>
-              </div>
-            </div>`;
+    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;line-height:1.45">
+      <h2 style="margin:0 0 12px">${empresa_nombre} – Nueva visita asignada</h2>
+      <p style="margin:0 0 8px">Hola <b>${
+        det.usuario_nombre || "Usuario"
+      }</b>, tienes una nueva visita:</p>
+      <ul style="padding-left:18px;margin:8px 0 14px">
+        <li><b>Fecha:</b> ${fechaStr}</li>
+        <li><b>Hora:</b> ${horaStr} hrs</li>
+        <li><b>Dirección:</b> ${det.direccion}</li>
+        <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${
+            det.cliente_correo ? "(" + det.cliente_correo + ")" : ""
+          }</li>
+      </ul>
+      <div style="margin:14px 0">
+        <a href="${google}" target="_blank" rel="noopener"
+           style="display:inline-block;padding:10px 14px;margin-right:8px;border-radius:8px;background:#1a73e8;color:#fff;text-decoration:none">
+          Abrir en Google Maps
+        </a>
+        <a href="${waze}" target="_blank" rel="noopener"
+           style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff;text-decoration:none">
+          Abrir en Waze
+        </a>
+      </div>
+    </div>`;
 
           await enviarCorreo({
             to: correoUsuario,
             subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`,
             html: htmlUsuario,
           });
-          console.log("[MAIL] Usuario OK:", correoUsuario);
+          console.log("[MAIL][USR] Enviado a:", correoUsuario);
         } else {
-          console.warn("[MAIL] No logré determinar correo del usuario logueado. No se envía.");
+          console.warn(
+            "[MAIL][USR] No logré resolver correo del usuario. No se envía."
+          );
         }
 
         // ========== EMPRESA ==========
@@ -244,7 +306,9 @@ async function crear(req, res) {
           });
           console.log("[MAIL] Empresa OK:", correoEmpresa);
         } else {
-          console.warn("[MAIL] Empresa sin correo en BD; no se envía notificación.");
+          console.warn(
+            "[MAIL] Empresa sin correo en BD; no se envía notificación."
+          );
         }
       } catch (e) {
         console.error("Fallo al enviar correos (no afecta al cliente):", e);
@@ -253,8 +317,12 @@ async function crear(req, res) {
     // ================================
   } catch (e) {
     console.error("Error al crear agenda:", e);
-    if (String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")) {
-      return res.status(409).json({ error: "Cita duplicada (solape detectado)." });
+    if (
+      String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")
+    ) {
+      return res
+        .status(409)
+        .json({ error: "Cita duplicada (solape detectado)." });
     }
     return res.status(500).json({ error: "Error al registrar cita" });
   }
