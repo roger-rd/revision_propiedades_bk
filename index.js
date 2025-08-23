@@ -95,17 +95,16 @@ app.use("/api/informes", require("./routes/informes"));
 app.use("/api/usuarios", require("./routes/usuarios"));
 app.use("/api/empresas", require("./routes/empresas"));
 app.use("/api/agenda", require("./routes/agenda"));
-// app.use("/api/autocomplete", require("./routes/autocomplete"));
-// app.use("/api/place-details", require("./routes/placeDetails"));
+
 app.use('/api/auth', require('./routes/auth_reset'));
 
 app.use('/api/autocomplete', require('./routes/googleAutocomplete'));
 app.use('/api/place-details', require('./routes/googlePlaceDetails'));
 app.use('/api/google-billing', require('./routes/googleBilling'));
 
-// app.use('/api/google-usage', require('./routes/googleUsage')); 
 
 app.use('/api', require('./routes/test'));
+app.use('/api/_debug', require('./routes/debugRoutes'));
 
 
 /* ============ Jobs (opcional por bandera) ============ */

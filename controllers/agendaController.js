@@ -16,6 +16,7 @@ function toHHMM(hora) {
   return `${m[1]}:${m[2]}`;
 }
 
+
 function formatearFechaHora(fechaISO, horaHHMM) {
   try {
     const fechaPart = (fechaISO || "").split("T")[0];
@@ -132,6 +133,8 @@ function htmlConfirmacion({
 // ---------- /Helpers ----------
 
 async function crear(req, res) {
+  console.log('[CREAR] req.usuario:', req.usuario);
+console.log('[CREAR] Authorization header:', req.headers.authorization ? req.headers.authorization.slice(0, 20) + '...' : 'N/A');
   try {
     const { id_empresa, id_cliente, direccion, fecha, hora, observacion } =
       req.body;
