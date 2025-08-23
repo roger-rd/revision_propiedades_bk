@@ -180,20 +180,20 @@ async function crear(req, res) {
         // ========== USUARIO (creador/logueado) ==========
         let correoUsuario =
           det.usuario_correo ||
-          req.usuario?.email ||
+          req.usuario?.correo ||
           null;
 
         if (!correoUsuario && req.usuario?.id_usuario) {
           try {
             const { rows } = await pool.query(
-              `SELECT email, nombre
+              `SELECT correo, nombre
                  FROM usuarios
                 WHERE id = $1 AND id_empresa = $2
                 LIMIT 1;`,
               [req.usuario.id_usuario, det.id_empresa || id_empresa]
             );
-            if (rows[0]?.email) {
-              correoUsuario = rows[0].email;
+            if (rows[0]?.correo) {
+              correoUsuario = rows[0].correo;
               det.usuario_nombre = rows[0].nombre || det.usuario_nombre;
             }
           } catch (qErr) {
