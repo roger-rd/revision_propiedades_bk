@@ -4,7 +4,8 @@ const crypto = require("crypto");
 const bcrypt = require("bcryptjs");
 const pool = require("../config/bd_revision_casa");
 const { enviarCorreo } = require("../utils/mailer");
-const APP_URL = process.env.APP_URL || "http://localhost:5173"; // URL del front
+
+const APP_URL = process.env.FRONTEND_ORIGINS || "http://localhost:5173"; // URL del front
 
 // POST /api/auth/reset/request  -> recibe { correo }
 router.post("/reset/request", async (req, res, next) => {
