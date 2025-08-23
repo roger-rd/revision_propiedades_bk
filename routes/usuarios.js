@@ -10,7 +10,7 @@ router.post('/login',  UsuarioController.login);
 router.get('/:id', /*auth,*/ UsuarioController.getUsuario);
 router.put('/:id', /*auth,*/ UsuarioController.updateUsuario);
 router.put('/:id/password', /*auth,*/ UsuarioController.updatePassword);
-router.get('/', /*auth,*/ UsuarioController.list);
+router.get('/', UsuarioController.list);
 router.post('/', /*auth,*/ UsuarioController.create);
 router.delete('/:id', /*auth,*/ UsuarioController.remove);
 

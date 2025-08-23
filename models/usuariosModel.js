@@ -18,44 +18,37 @@ async function buscarPorCredenciales(correo, password) {
 
 /** Lista todos los usuarios de una empresa */
 async function getAll({ id_empresa }) {
-  const { rows } = await pool.query(
-    `SELECT 
-        u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.actualizado_en,
-        e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
-     FROM usuarios u
-     JOIN empresas e ON u.id_empresa = e.id
-     WHERE u.id_empresa = $1
-     ORDER BY u.id DESC`,
-    [id_empresa]
-  );
-  return rows;
+  return listUsers({ id_empresa: id_empresa ?? null });
 }
 
 /** Busca usuario + empresa SOLO por correo */
 async function buscarPorCorreo(correo) {
   const { rows } = await pool.query(
-    `SELECT 
-        u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.password, u.actualizado_en,
-        e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
-     FROM usuarios u
-     JOIN empresas e ON u.id_empresa = e.id
-     WHERE u.correo = $1
-     LIMIT 1`,
+    `
+    SELECT 
+      u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.password, u.actualizado_en,
+      e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
+    FROM usuarios u
+    JOIN empresas e ON e.id = u.id_empresa
+    WHERE u.correo = $1
+    LIMIT 1
+    `,
     [correo]
   );
   return rows[0] || null;
 }
 
-
 /** Obtiene un usuario por ID + datos de empresa */
 async function getById(id) {
   const { rows } = await pool.query(
-    `SELECT 
-        u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.actualizado_en,
-        e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
-     FROM usuarios u
-     JOIN empresas e ON u.id_empresa = e.id
-     WHERE u.id = $1`,
+    `
+    SELECT 
+      u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.actualizado_en,
+      e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
+    FROM usuarios u
+    JOIN empresas e ON e.id = u.id_empresa
+    WHERE u.id = $1
+    `,
     [id]
   );
   return rows[0] || null;
@@ -87,7 +80,6 @@ async function updateProfileFull(id, { nombre, correo, rol, id_empresa }) {
   );
   return rows[0] || null;
 }
-
 
 /** Obtiene solo el hash de la contraseña */
 async function getPasswordHash(id) {
@@ -121,6 +113,23 @@ async function remove(id) {
   return true;
 }
 
+/** Lista usuarios. Si id_empresa es null -> lista TODOS. */
+async function listUsers({ id_empresa = null }) {
+  const { rows } = await pool.query(
+    `
+    SELECT 
+      u.id, u.nombre, u.correo, u.rol, u.id_empresa, u.actualizado_en,
+      e.nombre AS empresa_nombre, e.logo_url, e.color_primario, e.color_segundario
+    FROM usuarios u
+    JOIN empresas e ON e.id = u.id_empresa
+    WHERE ($1::int IS NULL OR u.id_empresa = $1)
+    ORDER BY e.nombre ASC, u.nombre ASC
+    `,
+    [id_empresa]
+  );
+  return rows;
+}
+
 module.exports = {
   buscarPorCorreo,
   getAll,
@@ -131,6 +140,7 @@ module.exports = {
   updatePassword,
   buscarPorCredenciales,
   create,
-  remove
+  remove,
+  listUsers
 };
 

@@ -116,17 +116,24 @@ async function updatePassword(req, res) {
 /** LISTAR usuarios de una empresa (sin auth: por query ?id_empresa=) */
 async function list(req, res) {
   try {
-    // Si tienes auth, usa: const id_empresa = req.user?.id_empresa;
-    const id_empresa = Number(req.query.id_empresa);
-    if (!id_empresa) return res.status(400).json({ error: "Falta id_empresa" });
+    // Admite ?empresa=all | ?empresa=3 | ?id_empresa=3 | (sin query => todas)
+    const { empresa, id_empresa } = req.query;
 
-    const rows = await UsuarioModel.getAll({ id_empresa });
+    let empresaFiltro = null;
+    if (empresa && empresa !== 'all') {
+      empresaFiltro = parseInt(empresa, 10);
+    } else if (id_empresa && id_empresa !== 'all') {
+      empresaFiltro = parseInt(id_empresa, 10);
+    } // si queda null => todas
+
+    const rows = await UsuarioModel.listUsers({ id_empresa: empresaFiltro });
     res.json(rows);
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Error al listar usuarios" });
+    console.error('[USUARIOS] list error:', e);
+    res.status(500).json({ error: 'Error al listar usuarios' });
   }
 }
+
 
 /** CREAR usuario (hash en controller) */
 async function create(req, res) {
