@@ -246,7 +246,7 @@ async function crear(req, res) {
     }
 
     // ========== EMPRESA (opcional, como lo tienes) ==========
-    const correoEmpresa = det.empresa_correo || process.env.EMPRESA_NOTIF;
+    const correoEmpresa = det.empresa_correo
     if (correoEmpresa) {
       await enviarCorreo({
         to: correoEmpresa,
