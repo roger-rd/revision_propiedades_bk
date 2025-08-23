@@ -171,13 +171,27 @@ async function crear(req, res) {
     (async () => {
       try {
         const det = await AgendaModel.obtenerDetalleCita(id_empresa, cita.id);
-        if (!det) return;
+        if (!det) {
+      console.warn("[MAIL] No encontré detalle de la cita recién creada:", cita.id);
+      return;
+    }
 
-        const empresa_nombre = det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Propiedad";
+        const empresa_nombre = 
+          det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Propiedad";
+        // Fecha/Hora y links
         const hHM = toHHMM(det.hora);
         const { fechaStr, horaStr } = formatearFechaHora(det.fecha, hHM);
         const { google, waze } = linksMapa(det.direccion);
+    
+         // ✅ Resolver usuario y remitente ANTES de enviar cualquier correo
+        const correoUsuario =
+          det.usuario_correo || req?.usuario?.correo || req?.usuario?.email || null;
 
+        const fromName = det.usuario_nombre
+          ? `${det.usuario_nombre} – ${empresa_nombre}`
+      : empresa_nombre;
+
+       // Template para el cliente/empresa
         const html = htmlConfirmacion({
           empresa_nombre,
           cliente_nombre: det.cliente_nombre || "Cliente",
@@ -187,8 +201,7 @@ async function crear(req, res) {
           googleUrl: google,
           wazeUrl: waze,
         });
-    const fromName = det.usuario_nombre ? `${det.usuario_nombre} – ${empresa_nombre}` : empresa_nombre;
-        
+   
     // ===== CLIENTE =====
         if (det.cliente_correo) {
           await enviarCorreo({ 
@@ -196,12 +209,14 @@ async function crear(req, res) {
             subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, 
             html,
             fromName,
-            replyTo: correoUsuario || undefined, // 👈 si responden, le llega al usuario
+            ...(correoUsuario ? { replyTo: correoUsuario } : {}),
           });
-        }
+          console.log("[MAIL] Cliente OK:", det.cliente_correo);
+        }else {
+      console.warn("[MAIL] Cliente sin correo, no se envía confirmación.");
+    }
 
-        // Usuario (del JOIN o del JWT si algún día lo incluyes)
-        const correoUsuario = det.usuario_correo || req?.usuario?.correo || req?.usuario?.email || null;
+      
         if (correoUsuario) {
           const htmlUsuario = `
             <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;line-height:1.45">
