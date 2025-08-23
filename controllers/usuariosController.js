@@ -134,7 +134,6 @@ async function list(req, res) {
   }
 }
 
-
 /** CREAR usuario (hash en controller) */
 async function create(req, res) {
   try {

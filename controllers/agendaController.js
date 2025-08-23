@@ -187,10 +187,17 @@ async function crear(req, res) {
           googleUrl: google,
           wazeUrl: waze,
         });
-
-        // Cliente
+    const fromName = det.usuario_nombre ? `${det.usuario_nombre} – ${empresa_nombre}` : empresa_nombre;
+        
+    // ===== CLIENTE =====
         if (det.cliente_correo) {
-          await enviarCorreo({ to: det.cliente_correo, subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, html });
+          await enviarCorreo({ 
+            to: det.cliente_correo, 
+            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, 
+            html,
+            fromName,
+            replyTo: correoUsuario || undefined, // 👈 si responden, le llega al usuario
+          });
         }
 
         // Usuario (del JOIN o del JWT si algún día lo incluyes)
@@ -217,7 +224,12 @@ async function crear(req, res) {
                 </a>
               </div>
             </div>`;
-          await enviarCorreo({ to: correoUsuario, subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`, html: htmlUsuario });
+          await enviarCorreo({ 
+            to: correoUsuario, 
+            subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`, 
+            html: htmlUsuario,
+            fromName: empresa_nombre, 
+          });
         } else {
           console.warn("[MAIL][USR] Usuario sin correo (det/JWT). No se envía.");
         }
@@ -225,7 +237,13 @@ async function crear(req, res) {
         // Empresa (solo si hay en BD; sin fallback .env)
         const correoEmpresa = det.empresa_correo;
         if (correoEmpresa) {
-          await enviarCorreo({ to: correoEmpresa, subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, html });
+          await enviarCorreo({ 
+            to: correoEmpresa, 
+            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, 
+            html,
+            fromName,
+            replyTo: correoUsuario || undefined,
+            });
         }
       } catch (e) {
         console.error("Fallo al enviar correos (no afecta al cliente):", e);
