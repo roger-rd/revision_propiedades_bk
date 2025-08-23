@@ -191,7 +191,6 @@ async function crear(req, res) {
         // Cliente
         if (det.cliente_correo) {
           await enviarCorreo({ to: det.cliente_correo, subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, html });
-          console.log("[MAIL] Cliente OK:", det.cliente_correo);
         }
 
         // Usuario (del JOIN o del JWT si algún día lo incluyes)
@@ -219,7 +218,6 @@ async function crear(req, res) {
               </div>
             </div>`;
           await enviarCorreo({ to: correoUsuario, subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`, html: htmlUsuario });
-          console.log("[MAIL][USR] Enviado a:", correoUsuario);
         } else {
           console.warn("[MAIL][USR] Usuario sin correo (det/JWT). No se envía.");
         }
@@ -228,7 +226,6 @@ async function crear(req, res) {
         const correoEmpresa = det.empresa_correo;
         if (correoEmpresa) {
           await enviarCorreo({ to: correoEmpresa, subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, html });
-          console.log("[MAIL] Empresa OK:", correoEmpresa);
         }
       } catch (e) {
         console.error("Fallo al enviar correos (no afecta al cliente):", e);

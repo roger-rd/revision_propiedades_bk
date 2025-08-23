@@ -7,7 +7,6 @@ async function limpiarTokensExpirados() {
       `DELETE FROM password_resets 
        WHERE used = true OR expires_at < NOW()`
     );
-    console.log(`🧹 Tokens expirados eliminados: ${rowCount}`);
   } catch (e) {
     console.error('Error limpiando tokens expirados:', e);
   }

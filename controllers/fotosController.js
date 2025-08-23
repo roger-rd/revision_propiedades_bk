@@ -64,7 +64,6 @@ async function destroyFirstMatch(publicIds) {
         resource_type: 'image',
         invalidate: true,
       });
-      console.log('TRY destroy =>', { pid, result: resp?.result });
       if (resp?.result === 'ok' || resp?.result === 'deleted') return true;
     } catch (e) {
       console.warn('Destroy error =>', pid, e?.message || e);
@@ -114,16 +113,14 @@ async function eliminarFotoObservacion(req, res) {
     const foto = await FotoModel.obtenerFotoPorId(id); // incluye url_foto
     if (!foto) return res.status(404).json({ error: 'Foto no encontrada' });
 
-    // Logs de diagnóstico (sin llamar cloudinary.config())
-    console.log('CLD cloud:', process.env.CLOUDINARY_NAME);
-    console.log('DELETE by id =>', { id_public_db: foto.id_public, url_foto_db: foto.url_foto });
+
+
 
     if (isCloudinaryDeleteEnabled()) {
       const candidates = makeCandidates({
         fromDb: foto.id_public,
         fromUrl: publicIdFromUrl(foto.url_foto),
       });
-      console.log('CANDIDATES =>', candidates);
       await destroyFirstMatch(candidates);
     }
 
@@ -142,8 +139,6 @@ async function eliminarFotoPorUrl(req, res) {
     if (!url_foto) return res.status(400).json({ error: 'Falta url_foto' });
 
     const fila = await FotoModel.obtenerFotoPorUrl(url_foto); // id, id_public
-    console.log('CLD cloud:', process.env.CLOUDINARY_NAME);
-    console.log('DELETE by url =>', { url_foto });
 
     if (isCloudinaryDeleteEnabled()) {
       const fromUrl = publicIdFromUrl(url_foto);
@@ -151,7 +146,6 @@ async function eliminarFotoPorUrl(req, res) {
         fromDb: fila?.id_public,
         fromUrl,
       });
-      console.log('CANDIDATES(by-url) =>', candidates);
       await destroyFirstMatch(candidates);
     }
 
