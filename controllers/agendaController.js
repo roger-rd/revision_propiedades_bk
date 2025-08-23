@@ -16,7 +16,6 @@ function toHHMM(hora) {
   return `${m[1]}:${m[2]}`;
 }
 
-
 function formatearFechaHora(fechaISO, horaHHMM) {
   try {
     const fechaPart = (fechaISO || "").split("T")[0];
@@ -133,14 +132,33 @@ function htmlConfirmacion({
 // ---------- /Helpers ----------
 
 async function crear(req, res) {
-  console.log('[CREAR] req.usuario:', req.usuario);
-console.log('[CREAR] Authorization header:', req.headers.authorization ? req.headers.authorization.slice(0, 20) + '...' : 'N/A');
+    console.log("[CREAR] req.usuario:", req.usuario);
+    console.log("[CREAR] Authorization header:",
+    req.headers.authorization ? req.headers.authorization.slice(0, 20) + "..." : "N/A"
+  );
   try {
-    const { id_empresa, id_cliente, direccion, fecha, hora, observacion } =
-      req.body;
-    if (!id_empresa || !id_cliente || !direccion || !fecha || !hora) {
+    const {
+      id_empresa,
+      id_cliente,
+      direccion,
+      fecha,
+      hora,
+      observacion,
+      id_usuario:idUsuarioBody,
+    } = req.body;
+    if (
+      !id_empresa ||
+      !id_cliente ||
+      !direccion ||
+      !fecha ||
+      !hora 
+    ) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
+
+    // ✅ resolvemos id_usuario: body (asignado) > token (creador) > null
+    const idUsuarioToken = req.usuario?.id || req.usuario?.id_usuario || null;
+    const id_usuario = idUsuarioBody ?? idUsuarioToken ?? null;
 
     // anti-solape
     const solapa = await AgendaModel.existeSolape({
@@ -148,13 +166,12 @@ console.log('[CREAR] Authorization header:', req.headers.authorization ? req.hea
       id_cliente,
       fecha,
       hora,
+      
     });
     if (solapa) {
-      return res
-        .status(409)
-        .json({
-          error: "Ya existe una cita para este cliente en esa fecha y hora.",
-        });
+      return res.status(409).json({
+        error: "Ya existe una cita para este cliente en esa fecha y hora.",
+      });
     }
 
     // crear
@@ -165,6 +182,7 @@ console.log('[CREAR] Authorization header:', req.headers.authorization ? req.hea
       fecha,
       hora,
       observacion,
+      id_usuario,
     });
 
     // responder ya
@@ -183,7 +201,9 @@ console.log('[CREAR] Authorization header:', req.headers.authorization ? req.hea
         }
 
         const empresa_nombre =
-          det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Casa";
+          det.empresa_nombre ||
+          process.env.APP_NAME ||
+          "RDRP Revisión Propiedad";
 
         // Fecha/Hora bonitas y enlaces de mapa
         const hHM = toHHMM(det.hora);
@@ -213,52 +233,11 @@ console.log('[CREAR] Authorization header:', req.headers.authorization ? req.hea
         }
 
         // ========== USUARIO (creador/logueado) ==========
-        let correoUsuario =
-          det?.usuario_correo || // si tu detalle ya lo trae
-          req?.usuario?.email || // si el JWT trae email
-          req?.usuario?.correo || // si el JWT trae correo
+        const correoUsuario =
+          det.usuario_correo || // viene del JOIN
+          req?.usuario?.email || // por si algún día metes email en el JWT
+          req?.usuario?.correo || // por si el JWT trae 'correo'
           null;
-
-        try {
-          // Logs temporales (borra luego de probar)
-          console.log("[MAIL][USR] det.usuario_correo:", det?.usuario_correo);
-          console.log("[MAIL][USR] req.usuario:", req?.usuario);
-
-          const idEmpresaCtx = det?.id_empresa || id_empresa || null;
-          const idUsuario =
-            (req?.usuario?.id_usuario ?? req?.usuario?.id) || null;
-          console.log(
-            "[MAIL][USR] idEmpresaCtx:",
-            idEmpresaCtx,
-            "idUsuario:",
-            idUsuario
-          );
-
-          // Si aún no tenemos correo, resolvemos por BD
-          if (!correoUsuario && idUsuario) {
-            const { rows } = await pool.query(
-              `SELECT 
-         COALESCE(email, correo)   AS email,   -- tolera 'email' o 'correo'
-         COALESCE(nombre, nombres) AS nombre   -- tolera 'nombre' o 'nombres'
-       FROM usuarios
-       WHERE id = $1
-         AND ($2::INT IS NULL OR id_empresa = $2)
-       LIMIT 1;`,
-              [idUsuario, idEmpresaCtx]
-            );
-            if (rows[0]?.email) {
-              correoUsuario = rows[0].email;
-              det.usuario_nombre = rows[0].nombre || det.usuario_nombre;
-            }
-          }
-        } catch (qErr) {
-          console.warn(
-            "[MAIL][USR] Error buscando correo en BD:",
-            qErr.message
-          );
-        }
-
-        console.log("[MAIL][USR] destinatario final:", correoUsuario);
 
         if (correoUsuario) {
           const htmlUsuario = `
@@ -281,12 +260,11 @@ console.log('[CREAR] Authorization header:', req.headers.authorization ? req.hea
           Abrir en Google Maps
         </a>
         <a href="${waze}" target="_blank" rel="noopener"
-           style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff;text-decoration:none">
+           style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff">
           Abrir en Waze
         </a>
       </div>
     </div>`;
-
           await enviarCorreo({
             to: correoUsuario,
             subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`,
@@ -295,10 +273,9 @@ console.log('[CREAR] Authorization header:', req.headers.authorization ? req.hea
           console.log("[MAIL][USR] Enviado a:", correoUsuario);
         } else {
           console.warn(
-            "[MAIL][USR] No logré resolver correo del usuario. No se envía."
+            "[MAIL][USR] Usuario sin correo (det/JWT). No se envía."
           );
         }
-
         // ========== EMPRESA ==========
         const correoEmpresa = det.empresa_correo; // sin fallback ENV
         if (correoEmpresa) {

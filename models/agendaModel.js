@@ -7,10 +7,11 @@ async function crearAgenda({
   fecha,
   hora,
   observacion,
+  id_usuario
 }) {
   const q = `
-    INSERT INTO agenda (id_empresa, id_cliente, direccion, fecha, hora, observacion)
-    VALUES ($1, $2, $3, $4, $5, $6)
+    INSERT INTO agenda (id_empresa, id_cliente, direccion, fecha, hora, observacion, id_usuario)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
     RETURNING *`;
   const vals = [
     id_empresa,
@@ -19,6 +20,7 @@ async function crearAgenda({
     fecha,
     hora,
     observacion ?? null,
+    id_usuario ?? null,
   ];
   const { rows } = await pool.query(q, vals);
   return rows[0];
@@ -97,23 +99,38 @@ async function obtenerDetalleCita(id_empresa, id_cita) {
     `
     SELECT
       a.id,
+      a.id_empresa,
+      a.id_usuario,
       a.direccion,
       a.fecha,
       a.hora,
-      c.nombre  AS cliente_nombre,
-      c.correo  AS cliente_correo,
-      e.nombre  AS empresa_nombre,
-      e.correo  AS empresa_correo
+
+      c.nombre                                    AS cliente_nombre,
+      COALESCE(c.email, c.correo)                 AS cliente_correo,
+
+      e.nombre                                    AS empresa_nombre,
+      COALESCE(e.email_notif_agenda, e.email, e.correo) AS empresa_correo,
+
+      u.nombre                                    AS usuario_nombre,
+      COALESCE(u.email, u.correo)                 AS usuario_correo
     FROM agenda a
-    JOIN clientes  c ON c.id = a.id_cliente
-    JOIN empresas  e ON e.id = a.id_empresa
-    WHERE a.id_empresa = $1 AND a.id = $2
+    JOIN clientes  c
+      ON c.id = a.id_cliente
+     AND c.id_empresa = a.id_empresa
+    JOIN empresas  e
+      ON e.id = a.id_empresa
+    LEFT JOIN usuarios u
+      ON u.id = a.id_usuario
+     AND u.id_empresa = a.id_empresa
+    WHERE a.id_empresa = $1
+      AND a.id = $2
     LIMIT 1
     `,
     [id_empresa, id_cita]
   );
   return rows[0] || null;
 }
+
 
 module.exports = {
   crearAgenda,
@@ -124,5 +141,5 @@ module.exports = {
   registrarRecordatorio,
   yaEnviado,
   obtenerCorreoEmpresa,
-  obtenerDetalleCita
+  obtenerDetalleCita,
 };

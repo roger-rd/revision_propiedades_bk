@@ -186,5 +186,16 @@ CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(id_usuari
 SELECT id, id_observacion FROM fotos_observacion WHERE id_public IS NULL OR id_public = '';
 
 SELECT * from fotos_observacion;
-SELECT * from solicitudes;
-SELECT * from espacios;
+SELECT * from usuarios;
+SELECT * from agenda;
+
+ALTER TABLE agenda
+ADD COLUMN IF NOT EXISTS id_usuario INTEGER;
+
+ALTER TABLE agenda
+  ADD CONSTRAINT fk_agenda_usuario
+  FOREIGN KEY (id_usuario) REFERENCES usuarios(id)
+  ON DELETE SET NULL;
+  
+  CREATE INDEX IF NOT EXISTS idx_agenda_id_usuario
+  ON agenda (id_usuario);
