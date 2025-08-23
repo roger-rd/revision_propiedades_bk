@@ -105,14 +105,14 @@ async function obtenerDetalleCita(id_empresa, id_cita) {
       a.fecha,
       a.hora,
 
-      c.nombre                                    AS cliente_nombre,
-      COALESCE(c.email, c.correo)                 AS cliente_correo,
+      c.nombre                      AS cliente_nombre,
+      c.correo                      AS cliente_correo,
 
-      e.nombre                                    AS empresa_nombre,
-      COALESCE(e.email_notif_agenda, e.email, e.correo) AS empresa_correo,
+      e.nombre                      AS empresa_nombre,
+      COALESCE(e.email_notif_agenda, e.correo) AS empresa_correo,
 
-      u.nombre                                    AS usuario_nombre,
-      COALESCE(u.email, u.correo)                 AS usuario_correo
+      u.nombre                      AS usuario_nombre,
+      u.correo                      AS usuario_correo
     FROM agenda a
     JOIN clientes  c
       ON c.id = a.id_cliente

@@ -132,10 +132,6 @@ function htmlConfirmacion({
 // ---------- /Helpers ----------
 
 async function crear(req, res) {
-    console.log("[CREAR] req.usuario:", req.usuario);
-    console.log("[CREAR] Authorization header:",
-    req.headers.authorization ? req.headers.authorization.slice(0, 20) + "..." : "N/A"
-  );
   try {
     const {
       id_empresa,
@@ -144,37 +140,22 @@ async function crear(req, res) {
       fecha,
       hora,
       observacion,
-      id_usuario:idUsuarioBody,
+      id_usuario: idUsuarioBody, // opcional (inspector asignado)
     } = req.body;
-    if (
-      !id_empresa ||
-      !id_cliente ||
-      !direccion ||
-      !fecha ||
-      !hora 
-    ) {
+
+    if (!id_empresa || !id_cliente || !direccion || !fecha || !hora) {
       return res.status(400).json({ error: "Faltan campos obligatorios." });
     }
 
-    // ✅ resolvemos id_usuario: body (asignado) > token (creador) > null
+    // del token (creador) o del body (asignado)
     const idUsuarioToken = req.usuario?.id || req.usuario?.id_usuario || null;
     const id_usuario = idUsuarioBody ?? idUsuarioToken ?? null;
 
-    // anti-solape
-    const solapa = await AgendaModel.existeSolape({
-      id_empresa,
-      id_cliente,
-      fecha,
-      hora,
-      
-    });
+    const solapa = await AgendaModel.existeSolape({ id_empresa, id_cliente, fecha, hora });
     if (solapa) {
-      return res.status(409).json({
-        error: "Ya existe una cita para este cliente en esa fecha y hora.",
-      });
+      return res.status(409).json({ error: "Ya existe una cita para este cliente en esa fecha y hora." });
     }
 
-    // crear
     const cita = await AgendaModel.crearAgenda({
       id_empresa,
       id_cliente,
@@ -185,27 +166,14 @@ async function crear(req, res) {
       id_usuario,
     });
 
-    // responder ya
     res.status(201).json(cita);
 
-    // === correos en segundo plano ===
     (async () => {
       try {
         const det = await AgendaModel.obtenerDetalleCita(id_empresa, cita.id);
-        if (!det) {
-          console.warn(
-            "[MAIL] No encontré detalle de la cita recién creada:",
-            cita.id
-          );
-          return;
-        }
+        if (!det) return;
 
-        const empresa_nombre =
-          det.empresa_nombre ||
-          process.env.APP_NAME ||
-          "RDRP Revisión Propiedad";
-
-        // Fecha/Hora bonitas y enlaces de mapa
+        const empresa_nombre = det.empresa_nombre || process.env.APP_NAME || "RDRP Revisión Propiedad";
         const hHM = toHHMM(det.hora);
         const { fechaStr, horaStr } = formatearFechaHora(det.fecha, hHM);
         const { google, waze } = linksMapa(det.direccion);
@@ -220,89 +188,56 @@ async function crear(req, res) {
           wazeUrl: waze,
         });
 
-        // ========== CLIENTE ==========
+        // Cliente
         if (det.cliente_correo) {
-          await enviarCorreo({
-            to: det.cliente_correo,
-            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
-            html,
-          });
+          await enviarCorreo({ to: det.cliente_correo, subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, html });
           console.log("[MAIL] Cliente OK:", det.cliente_correo);
-        } else {
-          console.warn("[MAIL] Cliente sin correo, no se envía confirmación.");
         }
 
-        // ========== USUARIO (creador/logueado) ==========
-        const correoUsuario =
-          det.usuario_correo || // viene del JOIN
-          req?.usuario?.email || // por si algún día metes email en el JWT
-          req?.usuario?.correo || // por si el JWT trae 'correo'
-          null;
-
+        // Usuario (del JOIN o del JWT si algún día lo incluyes)
+        const correoUsuario = det.usuario_correo || req?.usuario?.correo || req?.usuario?.email || null;
         if (correoUsuario) {
           const htmlUsuario = `
-    <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;line-height:1.45">
-      <h2 style="margin:0 0 12px">${empresa_nombre} – Nueva visita asignada</h2>
-      <p style="margin:0 0 8px">Hola <b>${
-        det.usuario_nombre || "Usuario"
-      }</b>, tienes una nueva visita:</p>
-      <ul style="padding-left:18px;margin:8px 0 14px">
-        <li><b>Fecha:</b> ${fechaStr}</li>
-        <li><b>Hora:</b> ${horaStr} hrs</li>
-        <li><b>Dirección:</b> ${det.direccion}</li>
-        <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${
-            det.cliente_correo ? "(" + det.cliente_correo + ")" : ""
-          }</li>
-      </ul>
-      <div style="margin:14px 0">
-        <a href="${google}" target="_blank" rel="noopener"
-           style="display:inline-block;padding:10px 14px;margin-right:8px;border-radius:8px;background:#1a73e8;color:#fff;text-decoration:none">
-          Abrir en Google Maps
-        </a>
-        <a href="${waze}" target="_blank" rel="noopener"
-           style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff">
-          Abrir en Waze
-        </a>
-      </div>
-    </div>`;
-          await enviarCorreo({
-            to: correoUsuario,
-            subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`,
-            html: htmlUsuario,
-          });
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto;line-height:1.45">
+              <h2 style="margin:0 0 12px">${empresa_nombre} – Nueva visita asignada</h2>
+              <p style="margin:0 0 8px">Hola <b>${det.usuario_nombre || "Usuario"}</b>, tienes una nueva visita:</p>
+              <ul style="padding-left:18px;margin:8px 0 14px">
+                <li><b>Fecha:</b> ${fechaStr}</li>
+                <li><b>Hora:</b> ${horaStr} hrs</li>
+                <li><b>Dirección:</b> ${det.direccion}</li>
+                <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${det.cliente_correo ? "(" + det.cliente_correo + ")" : ""}</li>
+              </ul>
+              <div style="margin:14px 0">
+                <a href="${google}" target="_blank" rel="noopener"
+                   style="display:inline-block;padding:10px 14px;margin-right:8px;border-radius:8px;background:#1a73e8;color:#fff;text-decoration:none">
+                  Abrir en Google Maps
+                </a>
+                <a href="${waze}" target="_blank" rel="noopener"
+                   style="display:inline-block;padding:10px 14px;border-radius:8px;background:#4caf50;color:#fff">
+                  Abrir en Waze
+                </a>
+              </div>
+            </div>`;
+          await enviarCorreo({ to: correoUsuario, subject: `Nueva visita asignada – ${fechaStr} ${horaStr} hrs`, html: htmlUsuario });
           console.log("[MAIL][USR] Enviado a:", correoUsuario);
         } else {
-          console.warn(
-            "[MAIL][USR] Usuario sin correo (det/JWT). No se envía."
-          );
+          console.warn("[MAIL][USR] Usuario sin correo (det/JWT). No se envía.");
         }
-        // ========== EMPRESA ==========
-        const correoEmpresa = det.empresa_correo; // sin fallback ENV
+
+        // Empresa (solo si hay en BD; sin fallback .env)
+        const correoEmpresa = det.empresa_correo;
         if (correoEmpresa) {
-          await enviarCorreo({
-            to: correoEmpresa,
-            subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`,
-            html,
-          });
+          await enviarCorreo({ to: correoEmpresa, subject: `Nueva cita agendada – ${fechaStr} ${horaStr} hrs`, html });
           console.log("[MAIL] Empresa OK:", correoEmpresa);
-        } else {
-          console.warn(
-            "[MAIL] Empresa sin correo en BD; no se envía notificación."
-          );
         }
       } catch (e) {
         console.error("Fallo al enviar correos (no afecta al cliente):", e);
       }
     })();
-    // ================================
   } catch (e) {
     console.error("Error al crear agenda:", e);
-    if (
-      String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")
-    ) {
-      return res
-        .status(409)
-        .json({ error: "Cita duplicada (solape detectado)." });
+    if (String(e?.message || "").includes("uq_agenda_empresa_cliente_fecha_hora")) {
+      return res.status(409).json({ error: "Cita duplicada (solape detectado)." });
     }
     return res.status(500).json({ error: "Error al registrar cita" });
   }
