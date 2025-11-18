@@ -1,42 +1,48 @@
-const nodemailer = require('nodemailer');
+// utils/mailer.js
+const sgMail = require('@sendgrid/mail');
 
 const {
-  SMTP_HOST = 'smtp.gmail.com',
-  SMTP_PORT = '465',
-  EMAIL_USER,
-  EMAIL_PASS,
+  SENDGRID_API_KEY,
   EMAIL_FROM,
-  APP_NAME = 'RDRP Revisión de Propiedades',
+  APP_NAME = 'RDRP Revisión Propiedad',
 } = process.env;
 
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: Number(SMTP_PORT),
-  secure: SMTP_PORT === '465',
-  auth: { user: EMAIL_USER, pass: EMAIL_PASS },
-});
-
-transporter.verify((error) => {
-  if (error) console.error('❌ SMTP:', error);
-  else console.log('✅ SMTP listo');
-});
-
-async function enviarCorreo({ to, subject, html, fromName, replyTo }) {
-  if (!to) {
-    console.warn('[MAIL] destinatario vacío; skip send', { subject });
-    return { skipped: true };
-  }
-  const from = `"${fromName || APP_NAME}" <${EMAIL_FROM || EMAIL_USER}>`; // 👈 nombre dinámico
-  const info = await transporter.sendMail({
-    from,
-    to,
-    subject,
-    html,
-    ...(replyTo ? { replyTo } : {}), // 👈 respuestas al usuario
-  });
-  console.log('[MAIL] enviado:', { messageId: info.messageId, to, subject, from, replyTo });
-  return info;
+if (!SENDGRID_API_KEY) {
+  console.warn('[MAIL] ⚠️ SENDGRID_API_KEY no está configurada. No se podrán enviar correos reales.');
+} else {
+  sgMail.setApiKey(SENDGRID_API_KEY);
 }
 
+async function enviarCorreo({ to, subject, html, fromName, replyTo }) {
+  if (!SENDGRID_API_KEY) {
+    console.log('[MAIL] Simulación de envío (falta SENDGRID_API_KEY):', { to, subject });
+    return;
+  }
 
-module.exports = { enviarCorreo, transporter };
+  const from = {
+    email: EMAIL_FROM || 'no-reply@example.com',
+    name: fromName || APP_NAME,
+  };
+
+  const msg = {
+    to,
+    from,
+    subject,
+    html,
+  };
+
+  if (replyTo) {
+    msg.replyTo = replyTo;
+  }
+
+  const [response] = await sgMail.send(msg);
+  console.log('[MAIL] Enviado:', {
+    to,
+    subject,
+    status: response.statusCode,
+  });
+
+  return response;
+}
+
+module.exports = { enviarCorreo };
