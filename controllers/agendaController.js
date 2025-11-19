@@ -16,10 +16,94 @@ function toHHMM(hora) {
   return `${m[1]}:${m[2]}`;
 }
 
+// function formatearFechaHora(fechaISO, horaHHMM) {
+//   try {
+//     const fechaPart = (fechaISO || "").split("T")[0];
+//     const fechaOk = /^\d{4}-\d{2}-\d{2}$/.test(fechaPart) ? fechaPart : null;
+
+//     const hhmm = toHHMM(horaHHMM);
+//     const [hh, mm] = hhmm.split(":").map((x) => parseInt(x, 10));
+
+//     if (!fechaOk || Number.isNaN(hh) || Number.isNaN(mm)) {
+//       const now = new Date();
+//       return {
+//         fechaStr: cap(
+//           new Intl.DateTimeFormat("es-CL", {
+//             weekday: "long",
+//             day: "2-digit",
+//             month: "long",
+//             year: "numeric",
+//             timeZone: "America/Santiago",
+//           }).format(now)
+//         ),
+//         horaStr: new Intl.DateTimeFormat("es-CL", {
+//           hour: "2-digit",
+//           minute: "2-digit",
+//           hour12: false,
+//           timeZone: "America/Santiago",
+//         }).format(now),
+//       };
+//     }
+
+//     const [y, m, d] = fechaOk.split("-").map((x) => parseInt(x, 10));
+//     const dt = new Date(Date.UTC(y, m - 1, d, hh, mm));
+
+//     const fechaStr = cap(
+//       new Intl.DateTimeFormat("es-CL", {
+//         weekday: "long",
+//         day: "2-digit",
+//         month: "long",
+//         year: "numeric",
+//         timeZone: "America/Santiago",
+//       }).format(dt)
+//     );
+
+//     const horaStr = new Intl.DateTimeFormat("es-CL", {
+//       hour: "2-digit",
+//       minute: "2-digit",
+//       hour12: false,
+//       timeZone: "America/Santiago",
+//     }).format(dt);
+
+//     return { fechaStr, horaStr };
+//   } catch {
+//     const now = new Date();
+//     return {
+//       fechaStr: cap(
+//         new Intl.DateTimeFormat("es-CL", {
+//           weekday: "long",
+//           day: "2-digit",
+//           month: "long",
+//           year: "numeric",
+//           timeZone: "America/Santiago",
+//         }).format(now)
+//       ),
+//       horaStr: new Intl.DateTimeFormat("es-CL", {
+//         hour: "2-digit",
+//         minute: "2-digit",
+//         hour12: false,
+//         timeZone: "America/Santiago",
+//       }).format(now),
+//     };
+//   }
+// }
+
 function formatearFechaHora(fechaISO, horaHHMM) {
   try {
-    const fechaPart = (fechaISO || "").split("T")[0];
-    const fechaOk = /^\d{4}-\d{2}-\d{2}$/.test(fechaPart) ? fechaPart : null;
+    let fechaPart = null;
+
+    if (fechaISO instanceof Date) {
+      // viene como Date desde PG
+      fechaPart = fechaISO.toISOString().slice(0, 10); // "YYYY-MM-DD"
+    } else if (typeof fechaISO === "string") {
+      // viene como string "YYYY-MM-DD" o "YYYY-MM-DDTHH:mm:ss"
+      fechaPart = fechaISO.split("T")[0];
+    } else {
+      fechaPart = null;
+    }
+
+    const fechaOk =
+      fechaPart && /^\d{4}-\d{2}-\d{2}$/.test(fechaPart) ? fechaPart : null;
 
     const hhmm = toHHMM(horaHHMM);
     const [hh, mm] = hhmm.split(":").map((x) => parseInt(x, 10));
@@ -66,7 +150,8 @@ function formatearFechaHora(fechaISO, horaHHMM) {
     }).format(dt);
 
     return { fechaStr, horaStr };
-  } catch {
+  } catch (e) {
+    console.error("[AGENDA] Error formatearFechaHora:", e);
     const now = new Date();
     return {
       fechaStr: cap(
@@ -87,6 +172,7 @@ function formatearFechaHora(fechaISO, horaHHMM) {
     };
   }
 }
+
 
 function linksMapa(direccion) {
   const q = encodeURIComponent(direccion || "");
