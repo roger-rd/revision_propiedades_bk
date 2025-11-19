@@ -104,6 +104,7 @@ async function obtenerDetalleCita(id_empresa, id_cita) {
       a.direccion,
       a.fecha,
       a.hora,
+      a.observacion,
 
       c.nombre                      AS cliente_nombre,
       c.correo                      AS cliente_correo,
