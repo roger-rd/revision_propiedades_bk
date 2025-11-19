@@ -237,7 +237,7 @@ async function crear(req, res) {
     const idUsuarioToken = req.usuario?.id || req.usuario?.id_usuario || null;
     const id_usuario = idUsuarioBody ?? idUsuarioToken ?? null;
 
-    const solapa = await AgendaModel.existeSolape({ id_empresa, id_cliente, fecha, hora });
+    const solapa = await AgendaModel.existeSolape({ id_empresa, id_cliente, fecha, hora, observacion });
     if (solapa) {
       return res.status(409).json({ error: "Ya existe una cita para este cliente en esa fecha y hora." });
     }
@@ -286,6 +286,7 @@ async function crear(req, res) {
           horaStr,
           googleUrl: google,
           wazeUrl: waze,
+          observacion: det.observacion,
         });
    
     // ===== CLIENTE =====
@@ -313,7 +314,7 @@ async function crear(req, res) {
                 <li><b>Hora:</b> ${horaStr} hrs</li>
                 <li><b>Dirección:</b> ${det.direccion}</li>
                 <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${det.cliente_correo ? "(" + det.cliente_correo + ")" : ""}</li>
-                <li><b>Dirección:</b> ${det.observacion}</li>
+                <li><b>Observación:</b> ${det.observacion}</li>
 
               </ul>
               <div style="margin:14px 0">
