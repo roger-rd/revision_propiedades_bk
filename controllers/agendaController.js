@@ -313,6 +313,8 @@ async function crear(req, res) {
                 <li><b>Hora:</b> ${horaStr} hrs</li>
                 <li><b>Dirección:</b> ${det.direccion}</li>
                 <li><b>Cliente:</b> ${det.cliente_nombre || ""} ${det.cliente_correo ? "(" + det.cliente_correo + ")" : ""}</li>
+                <li><b>Dirección:</b> ${det.observacion}</li>
+
               </ul>
               <div style="margin:14px 0">
                 <a href="${google}" target="_blank" rel="noopener"
