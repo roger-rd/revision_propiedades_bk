@@ -9,22 +9,35 @@ const app = express();
 
 
 // ====== Health con info útil
-const { v2: cld } = require('cloudinary');
-const url = require('url');
-app.get('/api/health', (req, res) => {
-  const dbUrl = process.env.DATABASE_URL;
-  const dbHost = dbUrl ? new url.URL(dbUrl).hostname : process.env.DB_HOST;
+const { v2: cld } = require("cloudinary");
+const { URL } = require("url");
+
+app.get("/api/health", (req, res) => {
+  const raw = (process.env.DATABASE_URL || "").trim(); // trim por si hay espacios
+  let dbHost = process.env.DB_HOST || null;
+  const dbSource = raw ? "DATABASE_URL" : "DB_HOST";
+  let parseError = null;
+
+  if (raw) {
+    try {
+      dbHost = new URL(raw).hostname;
+    } catch (e) {
+      parseError = e.message;
+    }
+  }
 
   res.json({
     ok: true,
     at: new Date().toISOString(),
-    db_source: dbUrl ? "DATABASE_URL" : "DB_HOST",
+    db_source: dbSource,
     db_host: dbHost,
-    cloud: cld.config().cloud_name
+    db_url_starts_with: raw ? raw.slice(0, 30) : null,
+    db_url_length: raw ? raw.length : 0,
+    db_url_invalid: !!parseError,
+    db_url_error: parseError,
+    cloud: cld.config().cloud_name,
   });
 });
-
-
 /* ============ Configuración base ============ */
 
 /* ============ CORS ============ */
