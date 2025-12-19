@@ -7,19 +7,18 @@ const { limpiarTokensExpirados } = require('./jobs/limpieza');
 
 const app = express();
 
-app.get('/api/health', (req, res) => res.json({ ok: true, at: new Date().toISOString() }));
-
 
 // ====== Health con info útil
 const { v2: cld } = require('cloudinary');
 const url = require('url');
 app.get('/api/health', (req, res) => {
-  const dbHost = process.env.DATABASE_URL
-    ? new url.URL(process.env.DATABASE_URL).hostname
-    : process.env.DB_HOST;
+  const dbUrl = process.env.DATABASE_URL;
+  const dbHost = dbUrl ? new url.URL(dbUrl).hostname : process.env.DB_HOST;
+
   res.json({
     ok: true,
     at: new Date().toISOString(),
+    db_source: dbUrl ? "DATABASE_URL" : "DB_HOST",
     db_host: dbHost,
     cloud: cld.config().cloud_name
   });
